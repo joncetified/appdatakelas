@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Instrument+Sans:wght@400;500;600;700&display=swap');
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Space Grotesk', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+@layer base {
+    body {
+        @apply bg-[linear-gradient(180deg,#fffaf0_0%,#f8fafc_48%,#eef2ff_100%)] font-sans antialiased;
+    }
+
+    ::selection {
+        @apply bg-amber-200 text-slate-950;
+    }
+}
+
+@layer components {
+    .panel {
+        @apply rounded-[32px] border border-white/70 bg-white/80 shadow-[0_20px_70px_-35px_rgba(15,23,42,0.45)] backdrop-blur-xl;
+    }
+
+    .nav-link {
+        @apply flex items-center rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-950 hover:text-white;
+    }
+
+    .nav-link-active {
+        @apply bg-slate-950 text-white shadow-lg shadow-slate-950/15;
+    }
+
+    .btn-primary {
+        @apply inline-flex items-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800;
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50;
+    }
+
+    .field {
+        @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5;
+    }
+
+    .label {
+        @apply text-sm font-semibold text-slate-700;
+    }
+}

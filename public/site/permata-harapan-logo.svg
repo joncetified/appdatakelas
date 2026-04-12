@@ -1,0 +1,14 @@
+<svg width="470" height="160" viewBox="0 0 470 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="470" height="160" fill="white" fill-opacity="0"/>
+  <g transform="translate(12 12)">
+    <path d="M40 8C53 17 58 28 54 40C51 48 44 53 36 56C35 45 31 36 24 28C19 22 13 17 7 14C16 6 28 3 40 8Z" fill="#F04C2D"/>
+    <path d="M24 24C34 31 40 42 39 54C37 66 29 75 18 79C19 68 16 57 9 47C6 42 3 37 1 32C8 24 16 20 24 24Z" fill="#FFFFFF"/>
+    <path d="M31 35C42 49 45 62 38 76C34 84 26 88 19 90L17 88C20 78 19 66 14 56C11 50 7 45 4 40C13 33 22 31 31 35Z" fill="#BD1812"/>
+    <path d="M28 50H42L57 130H14L28 50Z" fill="#2A1711"/>
+    <path d="M20 130H49C59 130 67 138 67 148H1C1 138 9 130 20 130Z" fill="#1A0D08"/>
+    <rect x="20" y="74" width="24" height="6" rx="3" fill="#644433"/>
+  </g>
+  <text x="95" y="40" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" letter-spacing="7" fill="#111111">sekolah</text>
+  <text x="95" y="84" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="52" font-weight="900" fill="#F5821F">PERMATA</text>
+  <text x="95" y="132" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="52" font-weight="900" fill="#F5821F">HARAPAN</text>
+</svg>
