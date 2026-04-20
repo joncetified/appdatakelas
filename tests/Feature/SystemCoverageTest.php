@@ -50,6 +50,8 @@ class SystemCoverageTest extends TestCase
         $routes = [
             route('dashboard'),
             route('reports.index'),
+            route('reports.create'),
+            route('reports.edit', $report),
             route('reports.show', $report),
             route('income.index'),
             route('admin.users.index'),
@@ -92,6 +94,35 @@ class SystemCoverageTest extends TestCase
             'contact_email' => 'info@permataharapan.test',
             'google_recaptcha_site_key' => 'site-key',
         ]);
+    }
+
+    public function test_super_admin_can_upload_custom_logo_without_touching_default_logo(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $defaultLogoPath = public_path('site/permata-harapan-logo.svg');
+
+        $this->assertTrue(File::exists($defaultLogoPath));
+
+        $response = $this->actingAs($superAdmin)->put(route('admin.settings.update'), [
+            'company_name' => 'Sekolah Permata Harapan',
+            'logo' => UploadedFile::fake()->createWithContent('logo.svg', <<<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120">
+    <rect width="320" height="120" fill="#ffffff"/>
+    <text x="24" y="72" font-size="36" font-family="Arial" fill="#ff8618">Permata Harapan</text>
+</svg>
+SVG),
+        ]);
+
+        $response->assertRedirect(route('admin.settings.edit'));
+
+        $settings = SiteSetting::query()->firstOrFail();
+
+        $this->assertNotNull($settings->logo_path);
+        $this->assertNotSame('site/permata-harapan-logo.svg', $settings->logo_path);
+        $this->assertTrue(File::exists(public_path($settings->logo_path)));
+        $this->assertTrue(File::exists($defaultLogoPath));
+
+        File::delete(public_path($settings->logo_path));
     }
 
     public function test_super_admin_can_create_delete_and_restore_income(): void

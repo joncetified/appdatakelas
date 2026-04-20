@@ -105,6 +105,138 @@ class InfrastructureWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_super_admin_can_submit_report_for_any_classroom(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $leader = User::factory()->classLeader()->create();
+        $homeroomTeacher = User::factory()->homeroomTeacher()->create();
+        $classroom = Classroom::factory()->create([
+            'leader_id' => $leader->id,
+            'homeroom_teacher_id' => $homeroomTeacher->id,
+        ]);
+
+        $response = $this->actingAs($superAdmin)->post(route('reports.store'), [
+            'classroom_id' => $classroom->id,
+            'report_date' => '2026-04-12',
+            'student_count' => 35,
+            'teacher_count' => 3,
+            'notes' => 'Pendataan lintas kelas oleh super admin.',
+            'items' => [
+                [
+                    'item_name' => 'Laptop',
+                    'total_units' => 12,
+                    'damaged_units' => 1,
+                    'notes' => 'Satu unit baterai drop.',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect(route('reports.index'));
+
+        $this->assertDatabaseHas('infrastructure_reports', [
+            'classroom_id' => $classroom->id,
+            'reported_by_id' => $superAdmin->id,
+            'student_count' => 35,
+            'teacher_count' => 3,
+            'status' => InfrastructureReport::STATUS_SUBMITTED,
+        ]);
+    }
+
+    public function test_super_admin_can_edit_verified_report(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $leader = User::factory()->classLeader()->create();
+        $homeroomTeacher = User::factory()->homeroomTeacher()->create();
+        $classroom = Classroom::factory()->create([
+            'leader_id' => $leader->id,
+            'homeroom_teacher_id' => $homeroomTeacher->id,
+        ]);
+
+        $report = InfrastructureReport::factory()->create([
+            'classroom_id' => $classroom->id,
+            'reported_by_id' => $leader->id,
+            'verified_by_id' => $homeroomTeacher->id,
+            'report_date' => '2026-04-10',
+            'status' => InfrastructureReport::STATUS_VERIFIED,
+            'verification_notes' => 'Sudah diverifikasi.',
+            'verified_at' => now(),
+        ]);
+
+        $report->items()->create([
+            'item_name' => 'Komputer',
+            'total_units' => 20,
+            'damaged_units' => 2,
+            'notes' => 'Data awal.',
+        ]);
+
+        $response = $this->actingAs($superAdmin)->put(route('reports.update', $report), [
+            'classroom_id' => $classroom->id,
+            'report_date' => '2026-04-10',
+            'student_count' => 36,
+            'teacher_count' => 2,
+            'notes' => 'Revisi oleh super admin.',
+            'items' => [
+                [
+                    'item_name' => 'Komputer',
+                    'total_units' => 22,
+                    'damaged_units' => 1,
+                    'notes' => 'Data hasil revisi.',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect(route('reports.show', $report));
+
+        $this->assertDatabaseHas('infrastructure_reports', [
+            'id' => $report->id,
+            'reported_by_id' => $superAdmin->id,
+            'status' => InfrastructureReport::STATUS_SUBMITTED,
+            'verification_notes' => null,
+            'verified_by_id' => null,
+        ]);
+
+        $this->assertDatabaseHas('infrastructure_report_items', [
+            'infrastructure_report_id' => $report->id,
+            'item_name' => 'Komputer',
+            'total_units' => 22,
+            'damaged_units' => 1,
+            'notes' => 'Data hasil revisi.',
+        ]);
+    }
+
+    public function test_super_admin_can_verify_any_report(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $leader = User::factory()->classLeader()->create();
+        $homeroomTeacher = User::factory()->homeroomTeacher()->create();
+        $classroom = Classroom::factory()->create([
+            'leader_id' => $leader->id,
+            'homeroom_teacher_id' => $homeroomTeacher->id,
+        ]);
+
+        $report = InfrastructureReport::factory()->create([
+            'classroom_id' => $classroom->id,
+            'reported_by_id' => $leader->id,
+            'verified_by_id' => null,
+            'report_date' => '2026-04-11',
+            'status' => InfrastructureReport::STATUS_SUBMITTED,
+        ]);
+
+        $response = $this->actingAs($superAdmin)->post(route('reports.verification.update', $report), [
+            'action' => InfrastructureReport::STATUS_VERIFIED,
+            'verification_notes' => 'Disahkan langsung oleh super admin.',
+        ]);
+
+        $response->assertRedirect(route('reports.show', $report));
+
+        $this->assertDatabaseHas('infrastructure_reports', [
+            'id' => $report->id,
+            'status' => InfrastructureReport::STATUS_VERIFIED,
+            'verified_by_id' => $superAdmin->id,
+            'verification_notes' => 'Disahkan langsung oleh super admin.',
+        ]);
+    }
+
     public function test_guest_is_redirected_when_accessing_dashboard(): void
     {
         $this->get(route('dashboard'))->assertRedirect(route('login'));
@@ -130,9 +262,23 @@ class InfrastructureWorkflowTest extends TestCase
         $this->assertAuthenticated();
     }
 
-    public function test_login_redirects_to_setup_when_database_has_no_user(): void
+    public function test_login_page_is_accessible_when_database_has_no_user(): void
     {
-        $this->get(route('login'))->assertRedirect(route('setup.admin.create'));
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('Buka Setup Super Admin');
+    }
+
+    public function test_login_submission_redirects_back_with_setup_message_when_database_has_no_user(): void
+    {
+        $response = $this->from(route('login'))->post(route('login.store'), [
+            'email' => 'admin@sekolah.test',
+            'password' => 'password123',
+        ]);
+
+        $response
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('initial_setup');
     }
 
     public function test_super_admin_without_verified_email_can_still_access_dashboard(): void

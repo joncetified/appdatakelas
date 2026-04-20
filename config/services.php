@@ -40,4 +40,13 @@ return [
         'secret_key' => env('RECAPTCHA_SECRET_KEY', env('GOOGLE_RECAPTCHA_SECRET_KEY')),
     ],
 
+    'groq' => [
+        'key' => env('GROQ_API_KEY'),
+        'model' => env('GROQ_MODEL', 'openai/gpt-oss-20b'),
+        'url' => env('GROQ_RESPONSES_URL', 'https://api.groq.com/openai/v1/responses'),
+        'timeout' => (int) env('GROQ_TIMEOUT', 30),
+        'reasoning_effort' => env('GROQ_REASONING_EFFORT', 'low'),
+        'max_output_tokens' => (int) env('GROQ_MAX_OUTPUT_TOKENS', 500),
+    ],
+
 ];

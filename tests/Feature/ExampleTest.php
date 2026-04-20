@@ -13,11 +13,11 @@ class ExampleTest extends TestCase
     /**
      * A basic test example.
      */
-    public function test_root_redirects_guest_to_setup_when_no_user_exists(): void
+    public function test_root_redirects_guest_to_login_when_no_user_exists(): void
     {
         $response = $this->get('/');
 
-        $response->assertRedirect(route('setup.admin.create'));
+        $response->assertRedirect(route('login'));
     }
 
     public function test_root_redirects_guest_to_login_when_user_exists(): void
@@ -27,5 +27,16 @@ class ExampleTest extends TestCase
         $response = $this->get('/');
 
         $response->assertRedirect(route('login'));
+    }
+
+    public function test_guest_sees_custom_404_page(): void
+    {
+        $response = $this->get('/halaman-yang-tidak-ada');
+
+        $response
+            ->assertStatus(404)
+            ->assertSee('Error 404')
+            ->assertSee('Halaman yang Anda cari tidak ditemukan.')
+            ->assertSee('Masuk ke Sistem');
     }
 }

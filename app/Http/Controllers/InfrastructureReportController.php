@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class InfrastructureReportController extends Controller
@@ -26,6 +27,10 @@ class InfrastructureReportController extends Controller
         $user = $request->user();
         $status = $request->string('status')->toString();
         $search = trim($request->string('q')->toString());
+        $assignedClassroom = $user->isClassLeader()
+            ? $user->ledClassroom()->with('homeroomTeacher')->first()
+            : null;
+        $classroomOptions = $user->isSuperAdmin() ? $this->classroomOptions() : collect();
 
         $reports = InfrastructureReport::query()
             ->with(['classroom', 'reporter', 'verifier', 'items', 'createdByUser', 'updatedByUser'])
@@ -49,15 +54,16 @@ class InfrastructureReportController extends Controller
         return view('reports.index', [
             'reports' => $reports,
             'statusOptions' => InfrastructureReport::statusOptions(),
-            'assignedClassroom' => $user->isClassLeader()
-                ? $user->ledClassroom()->with('homeroomTeacher')->first()
-                : null,
+            'assignedClassroom' => $assignedClassroom,
+            'canCreateReport' => ($user->isClassLeader() && $assignedClassroom)
+                || ($user->isSuperAdmin() && $classroomOptions->isNotEmpty()),
         ]);
     }
 
     public function create(Request $request): View
     {
-        $classroom = $this->leaderClassroomOrAbort($request->user());
+        $classroomOptions = $request->user()->isSuperAdmin() ? $this->classroomOptions() : collect();
+        $classroom = $this->resolveClassroomForDraft($request, $classroomOptions);
 
         return view('reports.form', [
             'report' => new InfrastructureReport([
@@ -66,6 +72,7 @@ class InfrastructureReportController extends Controller
                 'teacher_count' => 0,
             ]),
             'classroom' => $classroom,
+            'classroomOptions' => $classroomOptions,
             'items' => [['item_name' => '', 'total_units' => '', 'damaged_units' => 0, 'notes' => '']],
             'pageTitle' => 'Input Laporan Infrastruktur',
             'submitLabel' => 'Kirim Laporan',
@@ -76,7 +83,7 @@ class InfrastructureReportController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $classroom = $this->leaderClassroomOrAbort($request->user());
+        $classroom = $this->resolveTargetClassroom($request);
         [$validated, $items] = $this->validatePayload($request, $classroom);
 
         DB::transaction(function () use ($request, $classroom, $validated, $items): void {
@@ -108,25 +115,24 @@ class InfrastructureReportController extends Controller
 
         return view('reports.show', [
             'report' => $report,
-            'canVerify' => $request->user()->isHomeroomTeacher()
-                && $report->classroom->homeroom_teacher_id === $request->user()->id
-                && $report->status !== InfrastructureReport::STATUS_VERIFIED,
-            'canEdit' => $request->user()->isClassLeader()
-                && $report->classroom->leader_id === $request->user()->id
-                && $report->isEditable(),
+            'canVerify' => $this->canVerify($request->user(), $report),
+            'canEdit' => $this->canEdit($request->user(), $report),
         ]);
     }
 
     public function edit(Request $request, InfrastructureReport $report): View
     {
         $report->load(['classroom', 'items']);
-        $classroom = $this->leaderClassroomOrAbort($request->user(), $report);
-
-        abort_unless($report->isEditable(), 403, 'Laporan yang sudah diverifikasi tidak dapat diubah.');
+        abort_unless($this->canEdit($request->user(), $report), 403, 'Anda tidak dapat mengubah laporan ini.');
+        $classroomOptions = $request->user()->isSuperAdmin() ? $this->classroomOptions() : collect();
+        $classroom = $request->user()->isSuperAdmin()
+            ? $report->classroom
+            : $this->leaderClassroomOrAbort($request->user(), $report);
 
         return view('reports.form', [
             'report' => $report,
             'classroom' => $classroom,
+            'classroomOptions' => $classroomOptions,
             'items' => $report->items->map(fn ($item) => [
                 'item_name' => $item->item_name,
                 'total_units' => $item->total_units,
@@ -143,14 +149,15 @@ class InfrastructureReportController extends Controller
     public function update(Request $request, InfrastructureReport $report): RedirectResponse
     {
         $report->load('classroom');
-        $this->leaderClassroomOrAbort($request->user(), $report);
-        abort_unless($report->isEditable(), 403, 'Laporan yang sudah diverifikasi tidak dapat diubah.');
+        abort_unless($this->canEdit($request->user(), $report), 403, 'Anda tidak dapat mengubah laporan ini.');
+        $classroom = $this->resolveTargetClassroom($request, $report);
 
-        [$validated, $items] = $this->validatePayload($request, $report->classroom, $report);
+        [$validated, $items] = $this->validatePayload($request, $classroom, $report);
 
-        DB::transaction(function () use ($request, $report, $validated, $items): void {
+        DB::transaction(function () use ($request, $report, $classroom, $validated, $items): void {
             $report->update([
                 ...$validated,
+                'classroom_id' => $classroom->id,
                 'reported_by_id' => $request->user()->id,
                 'status' => InfrastructureReport::STATUS_SUBMITTED,
                 'verified_by_id' => null,
@@ -204,6 +211,62 @@ class InfrastructureReportController extends Controller
         return $classroom;
     }
 
+    /**
+     * @return Collection<int, Classroom>
+     */
+    private function classroomOptions(): Collection
+    {
+        return Classroom::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    /**
+     * @param  Collection<int, Classroom>  $classroomOptions
+     */
+    private function resolveClassroomForDraft(Request $request, Collection $classroomOptions): Classroom
+    {
+        $user = $request->user();
+
+        if (! $user->isSuperAdmin()) {
+            return $this->leaderClassroomOrAbort($user);
+        }
+
+        abort_if($classroomOptions->isEmpty(), 403, 'Belum ada kelas yang tersedia untuk dibuatkan laporan.');
+
+        $selectedClassroomId = (int) old('classroom_id', $request->integer('classroom_id', (int) $classroomOptions->first()->id));
+        $classroom = $classroomOptions->firstWhere('id', $selectedClassroomId);
+
+        return $classroom ?? $classroomOptions->first();
+    }
+
+    private function resolveTargetClassroom(Request $request, ?InfrastructureReport $report = null): Classroom
+    {
+        $user = $request->user();
+
+        if (! $user->isSuperAdmin()) {
+            return $this->leaderClassroomOrAbort($user, $report);
+        }
+
+        $classroomId = (int) $request->input('classroom_id', $report?->classroom_id);
+
+        if ($classroomId <= 0) {
+            throw ValidationException::withMessages([
+                'classroom_id' => 'Kelas / ruang wajib dipilih.',
+            ]);
+        }
+
+        $classroom = Classroom::query()->find($classroomId);
+
+        if (! $classroom) {
+            throw ValidationException::withMessages([
+                'classroom_id' => 'Kelas / ruang yang dipilih tidak ditemukan.',
+            ]);
+        }
+
+        return $classroom;
+    }
+
     private function authorizeView(User $user, InfrastructureReport $report): void
     {
         if ($user->hasOverviewAccess()) {
@@ -219,6 +282,28 @@ class InfrastructureReportController extends Controller
         }
 
         abort(403);
+    }
+
+    private function canVerify(User $user, InfrastructureReport $report): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        return $user->isHomeroomTeacher()
+            && $report->classroom->homeroom_teacher_id === $user->id
+            && $report->status !== InfrastructureReport::STATUS_VERIFIED;
+    }
+
+    private function canEdit(User $user, InfrastructureReport $report): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        return $user->isClassLeader()
+            && $report->classroom->leader_id === $user->id
+            && $report->isEditable();
     }
 
     /**

@@ -16,7 +16,7 @@
             <div class="grid gap-5 md:grid-cols-2">
                 <div>
                     <label for="company_name" class="label">Nama Perusahaan / Sekolah</label>
-                    <input id="company_name" name="company_name" type="text" value="{{ old('company_name', $settings->company_name) }}" class="field mt-2" required>
+                    <input id="company_name" name="company_name" type="text" value="{{ old('company_name', $brandName) }}" class="field mt-2" required>
                 </div>
 
                 <div>
@@ -42,19 +42,31 @@
                 <div>
                     <label for="logo" class="label">Logo</label>
                     <input id="logo" name="logo" type="file" class="field mt-2">
+                    <p class="mt-2 text-sm text-slate-500">
+                        Jika tidak upload logo baru, sistem memakai logo default Sekolah Permata Harapan.
+                    </p>
                 </div>
             </div>
 
-            @if ($settings->logo_path)
-                <div class="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-5">
-                    <p class="text-sm font-semibold text-slate-950">Logo Saat Ini</p>
-                    <img src="{{ asset($settings->logo_path) }}" alt="Logo website" class="mt-4 h-20 w-auto max-w-[320px] object-contain">
+            <div class="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-5">
+                <p class="text-sm font-semibold text-slate-950">Logo Aktif</p>
+                <p class="mt-1 text-sm text-slate-600">
+                    {{ $settings->logo_path ? 'Logo custom yang sedang dipakai website.' : 'Belum ada logo custom, website memakai logo default bawaan.' }}
+                </p>
+                <div class="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                    <img
+                        src="{{ asset($settings->logo_path ?: $brandLogoPath) }}"
+                        alt="{{ $brandName }}"
+                        class="h-auto w-full max-w-[360px] object-contain"
+                    >
+                </div>
+                @if ($settings->logo_path)
                     <label class="mt-4 flex items-center gap-3 text-sm text-slate-600">
                         <input type="checkbox" name="remove_logo" value="1" class="h-4 w-4 rounded border-slate-300">
                         Hapus logo saat ini
                     </label>
-                </div>
-            @endif
+                @endif
+            </div>
 
             <div>
                 <label for="address" class="label">Alamat</label>

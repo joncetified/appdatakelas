@@ -53,10 +53,13 @@
                             <td class="px-6 py-4 font-medium text-slate-950">{{ $account->name }}</td>
                             <td class="px-6 py-4 text-slate-600">
                                 <p>{{ $account->email }}</p>
-                                <p class="mt-1 text-xs {{ $account->hasVerifiedEmail() ? 'text-emerald-600' : 'text-amber-600' }}">
-                                    {{ $account->hasVerifiedEmail() ? 'Email aktif' : 'Menunggu verifikasi email' }}
-                                </p>
-                            </td>
+                                @if ($account->hasVerifiedEmail())
+                                   <p class="mt-1 text-xs text-emerald-600">Email aktif</p>
+                                @elseif (! $account->requiresEmailVerification())
+                                   <p class="mt-1 text-xs text-slate-400">Belum diaktivasi (Opsional)</p>
+                                @else
+                                   <p class="mt-1 text-xs text-amber-600">Menunggu verifikasi email</p>
+                                @endif                            </td>
                             <td class="px-6 py-4 text-slate-600">{{ $account->whatsapp_number ?: '-' }}</td>
                             <td class="px-6 py-4">
                                 <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">

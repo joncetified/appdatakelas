@@ -3,6 +3,8 @@
 @section('content')
     @php
         $rows = old('items', $items);
+        $classroomOptions = $classroomOptions ?? collect();
+        $canChooseClassroom = auth()->user()->isSuperAdmin() && $classroomOptions->isNotEmpty();
         if (blank($rows)) {
             $rows = [['item_name' => '', 'total_units' => '', 'damaged_units' => 0, 'notes' => '']];
         }
@@ -12,7 +14,11 @@
         <p class="text-xs font-semibold uppercase tracking-[0.34em] text-slate-500">Laporan</p>
         <h2 class="mt-3 text-3xl font-semibold text-slate-950">{{ $pageTitle }}</h2>
         <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-            Isi jumlah siswa, guru, dan daftar item infrastruktur untuk <span class="font-semibold text-slate-950">{{ $classroom->name }}</span>.
+            @if ($canChooseClassroom)
+                Pilih kelas atau ruang yang ingin didata, lalu isi jumlah siswa, guru, dan daftar item infrastrukturnya.
+            @else
+                Isi jumlah siswa, guru, dan daftar item infrastruktur untuk <span class="font-semibold text-slate-950">{{ $classroom->name }}</span>.
+            @endif
         </p>
     </section>
 
@@ -25,8 +31,23 @@
         <section class="panel px-6 py-6 lg:px-8">
             <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                 <div>
-                    <label for="classroom_name" class="label">Kelas / Ruang</label>
-                    <input id="classroom_name" type="text" value="{{ $classroom->name }}" class="field mt-2 bg-slate-100" disabled>
+                    @if ($canChooseClassroom)
+                        <label for="classroom_id" class="label">Kelas / Ruang</label>
+                        <select id="classroom_id" name="classroom_id" class="field mt-2" required>
+                            <option value="">Pilih kelas / ruang</option>
+                            @foreach ($classroomOptions as $option)
+                                <option value="{{ $option->id }}" @selected((string) old('classroom_id', $classroom->id) === (string) $option->id)>
+                                    {{ $option->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('classroom_id')
+                            <p class="mt-2 text-sm text-rose-600">{{ $message }}</p>
+                        @enderror
+                    @else
+                        <label for="classroom_name" class="label">Kelas / Ruang</label>
+                        <input id="classroom_name" type="text" value="{{ $classroom->name }}" class="field mt-2 bg-slate-100" disabled>
+                    @endif
                 </div>
 
                 <div>

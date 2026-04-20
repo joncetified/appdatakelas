@@ -209,17 +209,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasRole(self::ROLE_SUPER_ADMIN, self::ROLE_MANAGER);
     }
 
+    public static function roleRequiresEmailVerification(string $role): bool
+    {
+        return in_array($role, [self::ROLE_CLASS_LEADER, self::ROLE_HOMEROOM_TEACHER], true);
+    }
+
     public function requiresEmailVerification(): bool
     {
-        return $this->hasRole(self::ROLE_CLASS_LEADER, self::ROLE_HOMEROOM_TEACHER);
+        return self::roleRequiresEmailVerification($this->role);
     }
 
     public function hasVerifiedEmail(): bool
     {
-        if (! $this->requiresEmailVerification()) {
-            return true;
-        }
-
         return ! is_null($this->email_verified_at);
     }
 

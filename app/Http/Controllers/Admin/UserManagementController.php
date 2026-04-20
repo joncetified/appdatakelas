@@ -58,7 +58,7 @@ class UserManagementController extends Controller
 
         $user = User::query()->create([
             ...$validated,
-            'email_verified_at' => now(),
+            'email_verified_at' => User::roleRequiresEmailVerification($validated['role']) ? null : now(),
         ]);
         $user->syncPermissionsBySlugs(User::defaultPermissionSlugsForRole($user->role));
 

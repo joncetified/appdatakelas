@@ -24,19 +24,23 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('dashboard');
         }
 
-        if (! User::query()->exists()) {
-            return redirect()->route('setup.admin.create');
-        }
+        $needsInitialSetup = ! User::query()->exists();
 
         return view('auth.login', [
             'captcha' => $this->captchaService->prepare($request),
+            'needsInitialSetup' => $needsInitialSetup,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         if (! User::query()->exists()) {
-            return redirect()->route('setup.admin.create');
+            return redirect()
+                ->route('login')
+                ->withInput($request->only('email'))
+                ->withErrors([
+                    'initial_setup' => 'Belum ada akun yang bisa dipakai login. Buat super admin pertama terlebih dahulu.',
+                ]);
         }
 
         $this->captchaService->validate($request);

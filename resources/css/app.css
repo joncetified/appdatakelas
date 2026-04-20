@@ -49,4 +49,24 @@
     .label {
         @apply text-sm font-semibold text-slate-700;
     }
+
+    .chatbot-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgb(148 163 184 / 0.8) transparent;
+    }
+
+    .chatbot-scrollbar::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .chatbot-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .chatbot-scrollbar::-webkit-scrollbar-thumb {
+        border: 2px solid transparent;
+        border-radius: 9999px;
+        background-color: rgb(148 163 184 / 0.55);
+        background-clip: padding-box;
+    }
 }

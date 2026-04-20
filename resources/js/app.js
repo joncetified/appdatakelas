@@ -1,4 +1,5 @@
 import './bootstrap';
+import { initializeSupportChatbot } from './chatbot';
 
 const numberFormatter = new Intl.NumberFormat('id-ID');
 const currencyFormatter = new Intl.NumberFormat('id-ID', {
@@ -246,4 +247,5 @@ const initializeCharts = () => {
 document.addEventListener('DOMContentLoaded', () => {
     initializeReportRepeater();
     initializeCharts();
+    initializeSupportChatbot();
 });

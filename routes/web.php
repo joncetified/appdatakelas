@@ -17,20 +17,18 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\InfrastructureReportController;
 use App\Http\Controllers\InfrastructureVerificationController;
-use App\Models\User;
+use App\Http\Controllers\SupportChatController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    if (! User::query()->exists()) {
-        return redirect()->route('setup.admin.create');
-    }
-
     return auth()->check()
         ? redirect()->route('dashboard')
         : redirect()->route('login');
 });
+
+Route::post('/chatbot/message', SupportChatController::class)->name('chatbot.message');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/setup/admin', [InitialAdminSetupController::class, 'create'])->name('setup.admin.create');
@@ -67,9 +65,6 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/reports', [InfrastructureReportController::class, 'index'])
             ->middleware('permission:reports.view')
             ->name('reports.index');
-        Route::get('/reports/{report}', [InfrastructureReportController::class, 'show'])
-            ->middleware('permission:reports.view')
-            ->name('reports.show');
 
         Route::middleware(['permission:reports.create', 'role:ketua_kelas'])->group(function (): void {
             Route::get('/reports/create', [InfrastructureReportController::class, 'create'])->name('reports.create');
@@ -89,6 +84,10 @@ Route::middleware('auth')->group(function (): void {
             Route::post('/reports/{report}/verification', [InfrastructureVerificationController::class, 'update'])
                 ->name('reports.verification.update');
         });
+
+        Route::get('/reports/{report}', [InfrastructureReportController::class, 'show'])
+            ->middleware('permission:reports.view')
+            ->name('reports.show');
 
         Route::get('/income', [IncomeController::class, 'index'])
             ->middleware('permission:income.view')

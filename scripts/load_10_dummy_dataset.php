@@ -21,91 +21,95 @@ $kernel->bootstrap();
 DB::transaction(function (): void {
     Permission::syncDefaults();
 
-    $superAdmin = User::query()
-        ->where('role', User::ROLE_SUPER_ADMIN)
-        ->orderBy('id')
-        ->first();
+    $defaultPassword = 'Password123!';
 
-    if (! $superAdmin) {
-        throw new RuntimeException('Super admin belum ada. Buat super admin terlebih dahulu.');
-    }
-
-    $touchAudit = function (Model $model) use ($superAdmin): void {
-        $payload = ['updated_by' => $superAdmin->id];
+    $touchAudit = function (Model $model, User $actor): void {
+        $payload = ['updated_by' => $actor->id];
 
         if (blank($model->getAttribute('created_by'))) {
-            $payload['created_by'] = $superAdmin->id;
+            $payload['created_by'] = $actor->id;
         }
 
         $model->forceFill($payload)->saveQuietly();
     };
 
-    ActivityLog::query()->delete();
-    InfrastructureReport::query()->withTrashed()->get()->each(fn (InfrastructureReport $report) => $report->forceDelete());
-    Classroom::query()->withTrashed()->get()->each(fn (Classroom $classroom) => $classroom->forceDelete());
-    IncomeEntry::query()->withTrashed()->get()->each(fn (IncomeEntry $income) => $income->forceDelete());
+    $upsertUser = function (array $payload, User $actor, string $defaultPassword) use ($touchAudit): User {
+        $user = User::query()
+            ->withTrashed()
+            ->firstOrNew(['email' => $payload['email']]);
 
-    DB::table('sessions')
-        ->whereNotNull('user_id')
-        ->where('user_id', '!=', $superAdmin->id)
-        ->delete();
-
-    User::query()
-        ->withTrashed()
-        ->where('id', '!=', $superAdmin->id)
-        ->get()
-        ->each(fn (User $user) => $user->forceDelete());
-
-    $createUser = function (array $payload) use ($touchAudit): User {
-        $user = User::query()->create([
+        $user->forceFill([
             'name' => $payload['name'],
             'email' => $payload['email'],
             'email_verified_at' => now(),
-            'password' => 'Password123!',
+            'password' => $defaultPassword,
             'role' => $payload['role'],
-            'whatsapp_number' => $payload['whatsapp_number'],
-        ]);
+            'whatsapp_number' => $payload['whatsapp_number'] ?? null,
+            'deleted_at' => null,
+        ])->saveQuietly();
 
         $user->syncPermissionsBySlugs(User::defaultPermissionSlugsForRole($user->role));
-        $touchAudit($user);
+        $touchAudit($user, $actor);
 
         return $user->fresh();
     };
 
-    $siteSetting = SiteSetting::query()->firstOrFail();
+    $superAdmin = User::query()
+        ->withTrashed()
+        ->firstOrNew(['email' => 'superadmin@permataharapan.test']);
+
+    $superAdmin->forceFill([
+        'name' => 'Super Admin Permata Harapan',
+        'email' => 'superadmin@permataharapan.test',
+        'email_verified_at' => now(),
+        'password' => $defaultPassword,
+        'role' => User::ROLE_SUPER_ADMIN,
+        'whatsapp_number' => '081210000000',
+        'deleted_at' => null,
+    ])->saveQuietly();
+
+    $superAdmin->syncPermissionsBySlugs(User::defaultPermissionSlugsForRole(User::ROLE_SUPER_ADMIN));
+    $superAdmin->forceFill([
+        'created_by' => $superAdmin->id,
+        'updated_by' => $superAdmin->id,
+    ])->saveQuietly();
+    $superAdmin = $superAdmin->fresh();
+
+    $siteSetting = SiteSetting::query()->first() ?? new SiteSetting();
     $siteSetting->forceFill([
         'company_name' => 'Sekolah Permata Harapan',
+        'logo_path' => 'site/permata-harapan-logo.svg',
         'address' => 'Jl. Raya Pendidikan No. 8, Cibinong, Bogor',
         'manager_name' => 'Hadi Santoso, S.Pd.',
-        'contact_email' => 'info@sekolahpermataharapan.test',
+        'contact_email' => 'info@permataharapan.test',
         'contact_phone' => '021-87904567',
         'contact_whatsapp' => '081234567890',
     ])->saveQuietly();
-    $touchAudit($siteSetting);
+    $touchAudit($siteSetting, $superAdmin);
 
     $supportUsers = [
         [
             'name' => 'Admin Operasional',
-            'email' => 'admin.operasional@sekolahpermataharapan.test',
+            'email' => 'admin.operasional@permataharapan.test',
             'role' => User::ROLE_ADMIN,
             'whatsapp_number' => '081210000001',
         ],
         [
             'name' => 'Manager Monitoring',
-            'email' => 'manager.monitoring@sekolahpermataharapan.test',
+            'email' => 'manager.monitoring@permataharapan.test',
             'role' => User::ROLE_MANAGER,
             'whatsapp_number' => '081210000002',
         ],
         [
             'name' => 'Kepala Sekolah',
-            'email' => 'kepala.sekolah@sekolahpermataharapan.test',
+            'email' => 'kepala.sekolah@permataharapan.test',
             'role' => User::ROLE_PRINCIPAL,
             'whatsapp_number' => '081210000003',
         ],
     ];
 
-    foreach ($supportUsers as $user) {
-        $createUser($user);
+    foreach ($supportUsers as $supportUser) {
+        $upsertUser($supportUser, $superAdmin, $defaultPassword);
     }
 
     $datasets = [
@@ -117,13 +121,13 @@ DB::transaction(function (): void {
             ],
             'leader' => [
                 'name' => 'Alya Maharani',
-                'email' => 'alya.maharani@sekolahpermataharapan.test',
+                'email' => 'alya.maharani@permataharapan.test',
                 'role' => User::ROLE_CLASS_LEADER,
                 'whatsapp_number' => '081220000101',
             ],
             'homeroom' => [
                 'name' => 'Rini Wulandari',
-                'email' => 'rini.wulandari@sekolahpermataharapan.test',
+                'email' => 'rini.wulandari@permataharapan.test',
                 'role' => User::ROLE_HOMEROOM_TEACHER,
                 'whatsapp_number' => '081230000201',
             ],
@@ -150,13 +154,13 @@ DB::transaction(function (): void {
             ],
             'leader' => [
                 'name' => 'Bima Prakoso',
-                'email' => 'bima.prakoso@sekolahpermataharapan.test',
+                'email' => 'bima.prakoso@permataharapan.test',
                 'role' => User::ROLE_CLASS_LEADER,
                 'whatsapp_number' => '081220000102',
             ],
             'homeroom' => [
                 'name' => 'Dewi Sartika',
-                'email' => 'dewi.sartika@sekolahpermataharapan.test',
+                'email' => 'dewi.sartika@permataharapan.test',
                 'role' => User::ROLE_HOMEROOM_TEACHER,
                 'whatsapp_number' => '081230000202',
             ],
@@ -183,13 +187,13 @@ DB::transaction(function (): void {
             ],
             'leader' => [
                 'name' => 'Citra Lestari',
-                'email' => 'citra.lestari@sekolahpermataharapan.test',
+                'email' => 'citra.lestari@permataharapan.test',
                 'role' => User::ROLE_CLASS_LEADER,
                 'whatsapp_number' => '081220000103',
             ],
             'homeroom' => [
                 'name' => 'Fajar Hidayat',
-                'email' => 'fajar.hidayat@sekolahpermataharapan.test',
+                'email' => 'fajar.hidayat@permataharapan.test',
                 'role' => User::ROLE_HOMEROOM_TEACHER,
                 'whatsapp_number' => '081230000203',
             ],
@@ -216,13 +220,13 @@ DB::transaction(function (): void {
             ],
             'leader' => [
                 'name' => 'Dimas Saputra',
-                'email' => 'dimas.saputra@sekolahpermataharapan.test',
+                'email' => 'dimas.saputra@permataharapan.test',
                 'role' => User::ROLE_CLASS_LEADER,
                 'whatsapp_number' => '081220000104',
             ],
             'homeroom' => [
                 'name' => 'Gina Melati',
-                'email' => 'gina.melati@sekolahpermataharapan.test',
+                'email' => 'gina.melati@permataharapan.test',
                 'role' => User::ROLE_HOMEROOM_TEACHER,
                 'whatsapp_number' => '081230000204',
             ],
@@ -249,13 +253,13 @@ DB::transaction(function (): void {
             ],
             'leader' => [
                 'name' => 'Eka Ramadhani',
-                'email' => 'eka.ramadhani@sekolahpermataharapan.test',
+                'email' => 'eka.ramadhani@permataharapan.test',
                 'role' => User::ROLE_CLASS_LEADER,
                 'whatsapp_number' => '081220000105',
             ],
             'homeroom' => [
                 'name' => 'Hendra Kusuma',
-                'email' => 'hendra.kusuma@sekolahpermataharapan.test',
+                'email' => 'hendra.kusuma@permataharapan.test',
                 'role' => User::ROLE_HOMEROOM_TEACHER,
                 'whatsapp_number' => '081230000205',
             ],
@@ -282,13 +286,13 @@ DB::transaction(function (): void {
             ],
             'leader' => [
                 'name' => 'Farah Nabila',
-                'email' => 'farah.nabila@sekolahpermataharapan.test',
+                'email' => 'farah.nabila@permataharapan.test',
                 'role' => User::ROLE_CLASS_LEADER,
                 'whatsapp_number' => '081220000106',
             ],
             'homeroom' => [
                 'name' => 'Intan Pertiwi',
-                'email' => 'intan.pertiwi@sekolahpermataharapan.test',
+                'email' => 'intan.pertiwi@permataharapan.test',
                 'role' => User::ROLE_HOMEROOM_TEACHER,
                 'whatsapp_number' => '081230000206',
             ],
@@ -315,13 +319,13 @@ DB::transaction(function (): void {
             ],
             'leader' => [
                 'name' => 'Galang Pratama',
-                'email' => 'galang.pratama@sekolahpermataharapan.test',
+                'email' => 'galang.pratama@permataharapan.test',
                 'role' => User::ROLE_CLASS_LEADER,
                 'whatsapp_number' => '081220000107',
             ],
             'homeroom' => [
                 'name' => 'Juni Astuti',
-                'email' => 'juni.astuti@sekolahpermataharapan.test',
+                'email' => 'juni.astuti@permataharapan.test',
                 'role' => User::ROLE_HOMEROOM_TEACHER,
                 'whatsapp_number' => '081230000207',
             ],
@@ -348,13 +352,13 @@ DB::transaction(function (): void {
             ],
             'leader' => [
                 'name' => 'Hafiz Ramadhan',
-                'email' => 'hafiz.ramadhan@sekolahpermataharapan.test',
+                'email' => 'hafiz.ramadhan@permataharapan.test',
                 'role' => User::ROLE_CLASS_LEADER,
                 'whatsapp_number' => '081220000108',
             ],
             'homeroom' => [
                 'name' => 'Kiki Andriani',
-                'email' => 'kiki.andriani@sekolahpermataharapan.test',
+                'email' => 'kiki.andriani@permataharapan.test',
                 'role' => User::ROLE_HOMEROOM_TEACHER,
                 'whatsapp_number' => '081230000208',
             ],
@@ -381,13 +385,13 @@ DB::transaction(function (): void {
             ],
             'leader' => [
                 'name' => 'Intan Lestari',
-                'email' => 'intan.lestari@sekolahpermataharapan.test',
+                'email' => 'intan.lestari@permataharapan.test',
                 'role' => User::ROLE_CLASS_LEADER,
                 'whatsapp_number' => '081220000109',
             ],
             'homeroom' => [
                 'name' => 'Lukman Hakim',
-                'email' => 'lukman.hakim@sekolahpermataharapan.test',
+                'email' => 'lukman.hakim@permataharapan.test',
                 'role' => User::ROLE_HOMEROOM_TEACHER,
                 'whatsapp_number' => '081230000209',
             ],
@@ -414,13 +418,13 @@ DB::transaction(function (): void {
             ],
             'leader' => [
                 'name' => 'Jihan Safitri',
-                'email' => 'jihan.safitri@sekolahpermataharapan.test',
+                'email' => 'jihan.safitri@permataharapan.test',
                 'role' => User::ROLE_CLASS_LEADER,
                 'whatsapp_number' => '081220000110',
             ],
             'homeroom' => [
                 'name' => 'Maya Kartika',
-                'email' => 'maya.kartika@sekolahpermataharapan.test',
+                'email' => 'maya.kartika@permataharapan.test',
                 'role' => User::ROLE_HOMEROOM_TEACHER,
                 'whatsapp_number' => '081230000210',
             ],
@@ -439,90 +443,36 @@ DB::transaction(function (): void {
                 ['item_name' => 'Proyektor', 'total_units' => 1, 'damaged_units' => 0, 'notes' => 'Normal.'],
             ],
         ],
-        [
-            'classroom' => [
-                'name' => 'XI AKL 1 SMK',
-                'location' => 'Gedung SMK Lantai 3 Ruang AKL 2',
-                'description' => 'Ruang AKL lanjutan untuk praktik spreadsheet akuntansi, laporan keuangan, dan simulasi kas kecil.',
-            ],
-            'leader' => [
-                'name' => 'Kevin Maulana',
-                'email' => 'kevin.maulana@sekolahpermataharapan.test',
-                'role' => User::ROLE_CLASS_LEADER,
-                'whatsapp_number' => '081220000111',
-            ],
-            'homeroom' => [
-                'name' => 'Nina Marlina',
-                'email' => 'nina.marlina@sekolahpermataharapan.test',
-                'role' => User::ROLE_HOMEROOM_TEACHER,
-                'whatsapp_number' => '081230000211',
-            ],
-            'report' => [
-                'report_date' => '2026-04-11',
-                'student_count' => 30,
-                'teacher_count' => 2,
-                'status' => InfrastructureReport::STATUS_VERIFIED,
-                'notes' => 'Ruang digunakan untuk simulasi laporan keuangan dan praktik administrasi dokumen.',
-                'verification_notes' => 'Seluruh sarana utama tersedia, kipas angin perlu dibersihkan berkala.',
-                'verified_at' => '2026-04-12 09:40:00',
-            ],
-            'items' => [
-                ['item_name' => 'Kipas Angin', 'total_units' => 2, 'damaged_units' => 0, 'notes' => 'Masih normal.'],
-                ['item_name' => 'Meja Siswa', 'total_units' => 30, 'damaged_units' => 1, 'notes' => 'Satu meja perlu penguatan kaki.'],
-                ['item_name' => 'Layar Proyektor', 'total_units' => 1, 'damaged_units' => 0, 'notes' => 'Layak pakai.'],
-            ],
-        ],
-        [
-            'classroom' => [
-                'name' => 'Lab Komputer SMK',
-                'location' => 'Gedung SMK Lantai 2 Lab Utama',
-                'description' => 'Laboratorium komputer SMK yang dipakai bersama jurusan BDP, RPL, dan AKL untuk praktik aplikasi dan ujian.',
-            ],
-            'leader' => [
-                'name' => 'Larasati Putri',
-                'email' => 'larasati.putri@sekolahpermataharapan.test',
-                'role' => User::ROLE_CLASS_LEADER,
-                'whatsapp_number' => '081220000112',
-            ],
-            'homeroom' => [
-                'name' => 'Oki Setiawan',
-                'email' => 'oki.setiawan@sekolahpermataharapan.test',
-                'role' => User::ROLE_HOMEROOM_TEACHER,
-                'whatsapp_number' => '081230000212',
-            ],
-            'report' => [
-                'report_date' => '2026-04-12',
-                'student_count' => 36,
-                'teacher_count' => 3,
-                'status' => InfrastructureReport::STATUS_VERIFIED,
-                'notes' => 'Lab utama dipakai untuk praktik coding RPL, spreadsheet AKL, dan pemasaran digital BDP.',
-                'verification_notes' => 'Data sudah valid, dua unit CPU perlu perawatan rutin.',
-                'verified_at' => '2026-04-13 08:20:00',
-            ],
-            'items' => [
-                ['item_name' => 'Komputer', 'total_units' => 36, 'damaged_units' => 2, 'notes' => 'Dua unit restart sendiri saat dipakai lama.'],
-                ['item_name' => 'Kursi Komputer', 'total_units' => 38, 'damaged_units' => 1, 'notes' => 'Satu kursi patah roda.'],
-                ['item_name' => 'Switch 24 Port', 'total_units' => 2, 'damaged_units' => 0, 'notes' => 'Semua normal.'],
-            ],
-        ],
     ];
 
     foreach ($datasets as $dataset) {
-        $leader = $createUser($dataset['leader']);
-        $homeroom = $createUser($dataset['homeroom']);
+        $leader = $upsertUser($dataset['leader'], $superAdmin, $defaultPassword);
+        $homeroom = $upsertUser($dataset['homeroom'], $superAdmin, $defaultPassword);
 
-        $classroom = Classroom::query()->create([
+        $classroom = Classroom::query()
+            ->withTrashed()
+            ->firstOrNew(['name' => $dataset['classroom']['name']]);
+
+        $classroom->forceFill([
             'name' => $dataset['classroom']['name'],
             'location' => $dataset['classroom']['location'],
             'description' => $dataset['classroom']['description'],
             'leader_id' => $leader->id,
             'homeroom_teacher_id' => $homeroom->id,
-        ]);
-        $touchAudit($classroom);
+            'deleted_at' => null,
+        ])->saveQuietly();
+        $touchAudit($classroom, $superAdmin);
 
         $reportStatus = $dataset['report']['status'];
 
-        $report = InfrastructureReport::query()->create([
+        $report = InfrastructureReport::query()
+            ->withTrashed()
+            ->firstOrNew([
+                'classroom_id' => $classroom->id,
+                'report_date' => $dataset['report']['report_date'],
+            ]);
+
+        $report->forceFill([
             'classroom_id' => $classroom->id,
             'reported_by_id' => $leader->id,
             'verified_by_id' => $reportStatus === InfrastructureReport::STATUS_SUBMITTED ? null : $homeroom->id,
@@ -533,9 +483,11 @@ DB::transaction(function (): void {
             'notes' => $dataset['report']['notes'],
             'verification_notes' => $dataset['report']['verification_notes'],
             'verified_at' => $dataset['report']['verified_at'],
-        ]);
-        $touchAudit($report);
+            'deleted_at' => null,
+        ])->saveQuietly();
+        $touchAudit($report, $superAdmin);
 
+        $report->items()->delete();
         $report->items()->createMany($dataset['items']);
     }
 
@@ -553,57 +505,40 @@ DB::transaction(function (): void {
     ];
 
     foreach ($incomeEntries as $incomeEntry) {
-        $income = IncomeEntry::query()->create([
+        $income = IncomeEntry::query()
+            ->withTrashed()
+            ->firstOrNew([
+                'title' => $incomeEntry['title'],
+                'entry_date' => $incomeEntry['entry_date'],
+            ]);
+
+        $income->forceFill([
             'title' => $incomeEntry['title'],
             'description' => $incomeEntry['description'],
             'amount' => $incomeEntry['amount'],
             'entry_date' => $incomeEntry['entry_date'],
-        ]);
-        $touchAudit($income);
+            'deleted_at' => null,
+        ])->saveQuietly();
+        $touchAudit($income, $superAdmin);
     }
 
-    $activityRows = [
-        [
-            'action' => 'dummy.settings.loaded',
-            'description' => 'Pengaturan website dummy diperbarui untuk unit SMP dan SMK.',
-            'properties' => ['company_name' => 'Sekolah Permata Harapan'],
+    ActivityLog::query()->create([
+        'action' => 'dummy.dataset.loaded',
+        'description' => '10 data dummy realistis berhasil dimuat ulang ke database tanpa seeder.',
+        'subject_type' => User::class,
+        'subject_id' => $superAdmin->id,
+        'causer_id' => $superAdmin->id,
+        'properties' => [
+            'users' => User::query()->count(),
+            'classrooms' => Classroom::query()->count(),
+            'reports' => InfrastructureReport::query()->count(),
+            'report_items' => DB::table('infrastructure_report_items')->count(),
+            'income_entries' => IncomeEntry::query()->count(),
         ],
-        [
-            'action' => 'dummy.users.loaded',
-            'description' => 'Akun dummy non-super-admin untuk admin, manager, kepala sekolah, ketua kelas, dan wali kelas berhasil dibuat ulang.',
-            'properties' => ['users' => User::query()->count()],
-        ],
-        [
-            'action' => 'dummy.classrooms.loaded',
-            'description' => 'Data kelas SMP 7-9, kelas jurusan BDP/RPL/AKL, dan lab komputer terbatas berhasil dimuat.',
-            'properties' => ['classrooms' => Classroom::query()->count()],
-        ],
-        [
-            'action' => 'dummy.reports.loaded',
-            'description' => 'Laporan infrastruktur SMP dan SMK berikut item pendukung berhasil dimuat.',
-            'properties' => [
-                'reports' => InfrastructureReport::query()->count(),
-                'items' => DB::table('infrastructure_report_items')->count(),
-            ],
-        ],
-        [
-            'action' => 'dummy.income.loaded',
-            'description' => 'Data pemasukan gabungan SMP dan SMK berhasil dimuat.',
-            'properties' => ['income_entries' => IncomeEntry::query()->count()],
-        ],
-    ];
+    ]);
 
-    foreach ($activityRows as $row) {
-        ActivityLog::query()->create([
-            'action' => $row['action'],
-            'description' => $row['description'],
-            'subject_type' => User::class,
-            'subject_id' => $superAdmin->id,
-            'causer_id' => $superAdmin->id,
-            'properties' => $row['properties'],
-        ]);
-    }
-
+    echo 'super_admin_email:'.$superAdmin->email.PHP_EOL;
+    echo 'default_password:'.$defaultPassword.PHP_EOL;
     echo 'users:'.User::query()->count().PHP_EOL;
     echo 'classrooms:'.Classroom::query()->count().PHP_EOL;
     echo 'reports:'.InfrastructureReport::query()->count().PHP_EOL;

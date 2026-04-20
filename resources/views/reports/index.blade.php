@@ -20,7 +20,7 @@
                     Lihat semua laporan yang sesuai dengan peran Anda, lalu buka detail untuk peninjauan atau perbaikan data.
                 </p>
             </div>
-            @if (auth()->user()->isClassLeader() && $assignedClassroom)
+            @if ($canCreateReport)
                 <a href="{{ route('reports.create') }}" class="btn-primary">Input Laporan Baru</a>
             @endif
         </div>
@@ -100,7 +100,10 @@
 
                 <div class="mt-5 flex flex-wrap gap-3">
                     <a href="{{ route('reports.show', $report) }}" class="btn-secondary">Detail</a>
-                    @if (auth()->user()->isClassLeader() && $report->classroom->leader_id === auth()->id() && $report->isEditable())
+                    @if (
+                        auth()->user()->isSuperAdmin()
+                        || (auth()->user()->isClassLeader() && $report->classroom->leader_id === auth()->id() && $report->isEditable())
+                    )
                         <a href="{{ route('reports.edit', $report) }}" class="btn-primary">Edit</a>
                     @endif
                     @if (

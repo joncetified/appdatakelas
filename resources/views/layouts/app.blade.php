@@ -1,10 +1,23 @@
 @php($user = auth()->user())
+@php($chatbotConfig = [
+    'endpoint' => route('chatbot.message'),
+    'brandName' => $brandName,
+    'botName' => 'Asisten PH',
+    'userName' => $user?->name,
+    'roleLabel' => $user?->role_label,
+    'isGuest' => ! $user,
+    'currentRoute' => request()->route()?->getName(),
+    'suggestions' => $user
+        ? ['Menu saya', 'Status laporan saya', 'Cara buat laporan', 'Kontak admin']
+        : ['Cara login', 'Lupa password', 'Kontak admin'],
+])
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title ?? ($siteSettings?->company_name ?? 'InfraKelas') }}</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ $title ?? $brandName }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen text-slate-900">
@@ -18,25 +31,16 @@
         <div class="relative mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 lg:flex-row lg:px-8">
             <aside class="panel flex w-full shrink-0 flex-col overflow-hidden lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-80">
                 <div class="border-b border-slate-200/70 p-6">
-                    @if ($siteSettings?->logo_path)
-                        <div>
-                            <img
-                                src="{{ asset($siteSettings->logo_path) }}"
-                                alt="{{ $siteSettings?->company_name ?? 'Logo Sekolah' }}"
-                                class="h-auto w-full max-w-[260px] object-contain"
-                            >
-                            @if ($siteSettings?->manager_name)
-                                <p class="mt-3 text-sm text-slate-500">Manager: {{ $siteSettings->manager_name }}</p>
-                            @endif
-                        </div>
-                    @else
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-[0.38em] text-amber-600">{{ $siteSettings?->company_name ?? 'InfraKelas' }}</p>
-                            @if ($siteSettings?->manager_name)
-                                <p class="mt-1 text-sm text-slate-500">Manager: {{ $siteSettings->manager_name }}</p>
-                            @endif
-                        </div>
-                    @endif
+                    <div>
+                        <img
+                            src="{{ asset($brandLogoPath) }}"
+                            alt="{{ $brandName }}"
+                            class="h-auto w-full max-w-[240px] object-contain"
+                        >
+                        @if ($siteSettings?->manager_name)
+                            <p class="mt-3 text-sm text-slate-500">Manager: {{ $siteSettings->manager_name }}</p>
+                        @endif
+                    </div>
                     <h1 class="mt-3 text-2xl font-semibold leading-tight text-slate-950">
                         Pendataan infrastruktur sekolah yang bisa diverifikasi.
                     </h1>
@@ -137,10 +141,34 @@
         </div>
     @else
         <main class="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-10 lg:px-8">
-            <div class="w-full">
-                @yield('content')
+            <div class="w-full space-y-6">
+                <section class="panel overflow-hidden px-6 py-6 lg:px-8">
+                    <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="max-w-2xl">
+                            <p class="text-xs font-semibold uppercase tracking-[0.38em] text-amber-600">Branding Sekolah</p>
+                            <h1 class="mt-4 text-4xl font-semibold leading-tight text-slate-950">{{ $brandName }}</h1>
+                            <p class="mt-4 max-w-xl text-sm leading-6 text-slate-600">
+                                Sistem pendataan ini sudah memakai identitas sekolah Anda dan tetap bisa diganti lagi dari menu pengaturan.
+                            </p>
+                        </div>
+
+                        <div class="rounded-[2rem] border border-amber-100 bg-white px-5 py-5 shadow-sm shadow-amber-100/50">
+                            <img
+                                src="{{ asset($brandLogoPath) }}"
+                                alt="{{ $brandName }}"
+                                class="h-auto w-full max-w-[320px] object-contain"
+                            >
+                        </div>
+                    </div>
+                </section>
+
+                <div class="w-full">
+                    @yield('content')
+                </div>
             </div>
         </main>
     @endif
+
+    <div id="support-chatbot" data-chatbot='@json($chatbotConfig)'></div>
 </body>
 </html>

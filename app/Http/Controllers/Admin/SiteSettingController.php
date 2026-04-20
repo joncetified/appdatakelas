@@ -7,12 +7,16 @@ use App\Models\SiteSetting;
 use App\Services\ActivityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class SiteSettingController extends Controller
 {
+    private const DEFAULT_LOGO_PATH = 'site/permata-harapan-logo.svg';
+
     public function __construct(
         private readonly ActivityService $activityService,
     ) {
@@ -44,23 +48,16 @@ class SiteSettingController extends Controller
         ]);
 
         if ($request->boolean('remove_logo') && $settings->logo_path) {
-            File::delete(public_path($settings->logo_path));
+            $this->deleteCustomLogo($settings->logo_path);
             $validated['logo_path'] = null;
         }
 
         if ($request->hasFile('logo')) {
-            if ($settings->logo_path) {
-                File::delete(public_path($settings->logo_path));
+            $validated['logo_path'] = $this->storeLogo($request->file('logo'));
+
+            if ($settings->logo_path && $settings->logo_path !== $validated['logo_path']) {
+                $this->deleteCustomLogo($settings->logo_path);
             }
-
-            $extension = strtolower((string) $request->file('logo')->getClientOriginalExtension());
-            $filename = Str::uuid()->toString().'.'.$extension;
-            $directory = public_path('site');
-
-            File::ensureDirectoryExists($directory);
-            $request->file('logo')->move($directory, $filename);
-
-            $validated['logo_path'] = 'site/'.$filename;
         }
 
         unset($validated['logo'], $validated['remove_logo']);
@@ -74,5 +71,28 @@ class SiteSettingController extends Controller
         );
 
         return redirect()->route('admin.settings.edit')->with('success', 'Pengaturan website berhasil diperbarui.');
+    }
+
+    private function storeLogo(UploadedFile $logo): string
+    {
+        $extension = strtolower((string) $logo->getClientOriginalExtension());
+        $filename = Str::uuid()->toString().'.'.$extension;
+
+        Storage::build([
+            'driver' => 'local',
+            'root' => public_path('site'),
+            'throw' => true,
+        ])->putFileAs('', $logo, $filename);
+
+        return 'site/'.$filename;
+    }
+
+    private function deleteCustomLogo(?string $logoPath): void
+    {
+        if (blank($logoPath) || $logoPath === self::DEFAULT_LOGO_PATH) {
+            return;
+        }
+
+        File::delete(public_path($logoPath));
     }
 }

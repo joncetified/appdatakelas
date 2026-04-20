@@ -19,17 +19,21 @@ class InfrastructureVerificationController extends Controller
     {
         $report->load('classroom');
 
-        abort_unless(
-            $report->classroom->homeroom_teacher_id === $request->user()->id,
-            403,
-            'Anda tidak berwenang memverifikasi laporan kelas ini.',
-        );
+        $isSuperAdmin = $request->user()->isSuperAdmin();
 
-        abort_unless(
-            $report->status !== InfrastructureReport::STATUS_VERIFIED,
-            403,
-            'Laporan ini sudah diverifikasi.',
-        );
+        if (! $isSuperAdmin) {
+            abort_unless(
+                $report->classroom->homeroom_teacher_id === $request->user()->id,
+                403,
+                'Anda tidak berwenang memverifikasi laporan kelas ini.',
+            );
+
+            abort_unless(
+                $report->status !== InfrastructureReport::STATUS_VERIFIED,
+                403,
+                'Laporan ini sudah diverifikasi.',
+            );
+        }
 
         $validated = $request->validate([
             'action' => [

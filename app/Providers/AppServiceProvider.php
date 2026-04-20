@@ -27,6 +27,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Carbon::setLocale(config('app.locale'));
 
+        $defaultBrandName = 'Sekolah Permata Harapan';
+        $defaultBrandLogoPath = 'site/permata-harapan-logo.svg';
+        $placeholderBrandNames = ['laravel', 'infrakelas', 'appdatakelas'];
+
         if (Schema::hasTable('permissions')) {
             Permission::syncDefaults();
         }
@@ -36,13 +40,24 @@ class AppServiceProvider extends ServiceProvider
 
             if (! $settings) {
                 $settings = SiteSetting::query()->create([
-                    'company_name' => config('app.name', 'InfraKelas'),
+                    'company_name' => $defaultBrandName,
+                    'logo_path' => $defaultBrandLogoPath,
                 ]);
             }
 
+            $rawBrandName = trim((string) $settings->company_name);
+            $usesDefaultBrandName = $rawBrandName === ''
+                || in_array(strtolower($rawBrandName), $placeholderBrandNames, true);
+            $brandName = $usesDefaultBrandName ? $defaultBrandName : $rawBrandName;
+            $brandLogoPath = blank($settings->logo_path) ? $defaultBrandLogoPath : $settings->logo_path;
+
             View::share('siteSettings', $settings);
+            View::share('brandName', $brandName);
+            View::share('brandLogoPath', $brandLogoPath);
         } else {
             View::share('siteSettings', null);
+            View::share('brandName', $defaultBrandName);
+            View::share('brandLogoPath', $defaultBrandLogoPath);
         }
 
         if (
