@@ -8,7 +8,9 @@
             Tentukan role akun agar akses dashboard dan menu sesuai tugasnya.
         </p>
         <div class="mt-5 rounded-3xl bg-slate-50 px-5 py-5 text-sm leading-6 text-slate-600">
-            Role yang tersedia mengikuti hak akses akun Anda. `super_admin` hanya bisa dibuat atau diubah oleh super admin.
+            Role yang tersedia mengikuti hak akses akun Anda.
+            <code class="rounded bg-white px-1.5 py-0.5 text-xs text-slate-700">super_admin</code>
+            hanya bisa dibuat atau diubah oleh super admin.
         </div>
     </section>
 
@@ -59,8 +61,15 @@
                 <div class="rounded-3xl bg-slate-50 px-5 py-5 text-sm text-slate-600">
                     <p>Status email:
                         <span class="font-semibold text-slate-950">
-                            {{ $user->hasVerifiedEmail() ? 'Terverifikasi' : 'Belum terverifikasi' }}
+                            @if ($user->requiresEmailVerification())
+                                {{ $user->email_verified_at ? 'Terverifikasi' : 'Belum terverifikasi' }}
+                            @else
+                                Tidak wajib verifikasi email untuk role ini
+                            @endif
                         </span>
+                    </p>
+                    <p class="mt-2">
+                        Jika role diubah, status verifikasi email akan disesuaikan otomatis mengikuti kebutuhan role tujuan.
                     </p>
                 </div>
             @endif

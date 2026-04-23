@@ -341,4 +341,152 @@ SVG),
         $response->assertSessionHas('success');
         $this->assertGuest();
     }
+
+    public function test_import_users_keeps_class_leader_unverified(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+
+        $csv = implode("\n", [
+            'name,email,role,whatsapp_number,permissions,deleted_at',
+            'Ketua Baru,ketua.import@sekolah.test,ketua_kelas,081200000321,,',
+        ]);
+
+        $file = UploadedFile::fake()->createWithContent('users.csv', $csv);
+
+        $response = $this->actingAs($superAdmin)->post(route('admin.imports.users'), [
+            'users_file' => $file,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'ketua.import@sekolah.test',
+            'role' => User::ROLE_CLASS_LEADER,
+            'email_verified_at' => null,
+        ]);
+    }
+
+    public function test_import_items_skips_invalid_quantities(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $leader = User::factory()->classLeader()->create();
+        $homeroomTeacher = User::factory()->homeroomTeacher()->create();
+        $classroom = Classroom::factory()->create([
+            'leader_id' => $leader->id,
+            'homeroom_teacher_id' => $homeroomTeacher->id,
+        ]);
+
+        $report = InfrastructureReport::factory()->create([
+            'classroom_id' => $classroom->id,
+            'reported_by_id' => $leader->id,
+        ]);
+
+        $csv = implode("\n", [
+            'infrastructure_report_id,item_name,total_units,damaged_units,notes',
+            "{$report->id},Proyektor,3,5,Invalid",
+            "{$report->id},Laptop,10,2,Valid",
+        ]);
+
+        $file = UploadedFile::fake()->createWithContent('items.csv', $csv);
+
+        $response = $this->actingAs($admin)->post(route('admin.imports.items'), [
+            'items_file' => $file,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success', fn (string $message) => str_contains($message, '1 baris diproses, 1 baris dilewati'));
+
+        $this->assertDatabaseMissing('infrastructure_report_items', [
+            'infrastructure_report_id' => $report->id,
+            'item_name' => 'Proyektor',
+        ]);
+
+        $this->assertDatabaseHas('infrastructure_report_items', [
+            'infrastructure_report_id' => $report->id,
+            'item_name' => 'Laptop',
+            'total_units' => 10,
+            'damaged_units' => 2,
+        ]);
+    }
+
+    public function test_updating_user_role_to_manager_marks_email_verified_when_not_required(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $leader = User::factory()->classLeader()->unverified()->create([
+            'email' => 'ketua.role@sekolah.test',
+        ]);
+
+        $response = $this->actingAs($superAdmin)->put(route('admin.users.update', $leader), [
+            'name' => $leader->name,
+            'email' => $leader->email,
+            'whatsapp_number' => $leader->whatsapp_number,
+            'role' => User::ROLE_MANAGER,
+            'password' => '',
+            'password_confirmation' => '',
+        ]);
+
+        $response->assertRedirect(route('admin.users.index'));
+
+        $leader->refresh();
+
+        $this->assertSame(User::ROLE_MANAGER, $leader->role);
+        $this->assertNotNull($leader->email_verified_at);
+    }
+
+    public function test_updating_user_role_to_class_leader_resets_email_verification(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $manager = User::factory()->manager()->create([
+            'email' => 'manager.role@sekolah.test',
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($superAdmin)->put(route('admin.users.update', $manager), [
+            'name' => $manager->name,
+            'email' => $manager->email,
+            'whatsapp_number' => $manager->whatsapp_number,
+            'role' => User::ROLE_CLASS_LEADER,
+            'password' => '',
+            'password_confirmation' => '',
+        ]);
+
+        $response->assertRedirect(route('admin.users.index'));
+
+        $manager->refresh();
+
+        $this->assertSame(User::ROLE_CLASS_LEADER, $manager->role);
+        $this->assertNull($manager->email_verified_at);
+    }
+
+    public function test_import_users_restores_soft_deleted_account_instead_of_creating_duplicate(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $trashedUser = User::factory()->classLeader()->create([
+            'email' => 'restore.import@sekolah.test',
+            'name' => 'Akun Lama',
+        ]);
+        $trashedUser->delete();
+
+        $csv = implode("\n", [
+            'name,email,role,whatsapp_number,permissions,deleted_at',
+            'Akun Dipulihkan,restore.import@sekolah.test,manager,081200000999,,',
+        ]);
+
+        $file = UploadedFile::fake()->createWithContent('users.csv', $csv);
+
+        $response = $this->actingAs($superAdmin)->post(route('admin.imports.users'), [
+            'users_file' => $file,
+        ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseCount('users', 2);
+
+        $restoredUser = User::withTrashed()->where('email', 'restore.import@sekolah.test')->firstOrFail();
+
+        $this->assertNull($restoredUser->deleted_at);
+        $this->assertSame('Akun Dipulihkan', $restoredUser->name);
+        $this->assertSame(User::ROLE_MANAGER, $restoredUser->role);
+    }
 }

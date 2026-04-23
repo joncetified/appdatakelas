@@ -2,35 +2,42 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use App\Models\Concerns\HasAuditTrail;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    /** @use HasFactory<UserFactory> */
-    use MustVerifyEmailTrait;
     use HasAuditTrail;
     use HasFactory;
+
+    /** @use HasFactory<UserFactory> */
+    use MustVerifyEmailTrait;
+
     use Notifiable;
     use SoftDeletes;
 
     public const ROLE_SUPER_ADMIN = 'super_admin';
+
     public const ROLE_ADMIN = 'admin';
+
     public const ROLE_MANAGER = 'manager';
+
     public const ROLE_PRINCIPAL = 'kepala_sekolah';
+
     public const ROLE_CLASS_LEADER = 'ketua_kelas';
+
     public const ROLE_HOMEROOM_TEACHER = 'wali_kelas';
 
     /**
@@ -45,6 +52,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'role',
         'whatsapp_number',
+        'avatar_path',
     ];
 
     /**
@@ -221,7 +229,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function hasVerifiedEmail(): bool
     {
-        return ! is_null($this->email_verified_at);
+        return ! $this->requiresEmailVerification() || ! is_null($this->email_verified_at);
     }
 
     /**
@@ -300,5 +308,21 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getRoleLabelAttribute(): string
     {
         return self::roleOptions()[$this->role] ?? Str::headline($this->role);
+    }
+
+    public function getInitialsAttribute(): string
+    {
+        $initials = collect(preg_split('/\s+/', trim((string) $this->name)) ?: [])
+            ->filter()
+            ->take(2)
+            ->map(fn (string $part) => Str::substr($part, 0, 1))
+            ->implode('');
+
+        return Str::upper($initials !== '' ? $initials : 'U');
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return filled($this->avatar_path) ? asset($this->avatar_path) : null;
     }
 }

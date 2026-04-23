@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Admin\ClassroomController;
 use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\ClassroomController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\SiteSettingController;
 use App\Http\Controllers\Admin\SystemToolController;
@@ -17,6 +17,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\InfrastructureReportController;
 use App\Http\Controllers\InfrastructureVerificationController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SupportChatController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
@@ -45,6 +46,9 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::get('/email/verify', EmailVerificationPromptController::class)->name('verification.notice');
     Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
         $request->fulfill();
@@ -66,6 +70,16 @@ Route::middleware('auth')->group(function (): void {
             ->middleware('permission:reports.view')
             ->name('reports.index');
 
+        Route::get('/reports/export/excel', [InfrastructureReportController::class, 'exportExcel'])
+            ->middleware('permission:reports.view')
+            ->name('reports.export.excel');
+        Route::get('/reports/export/pdf', [InfrastructureReportController::class, 'exportPdf'])
+            ->middleware('permission:reports.view')
+            ->name('reports.export.pdf');
+        Route::get('/reports/export/print', [InfrastructureReportController::class, 'exportPrint'])
+            ->middleware('permission:reports.view')
+            ->name('reports.export.print');
+
         Route::middleware(['permission:reports.create', 'role:ketua_kelas'])->group(function (): void {
             Route::get('/reports/create', [InfrastructureReportController::class, 'create'])->name('reports.create');
             Route::post('/reports', [InfrastructureReportController::class, 'store'])->name('reports.store');
@@ -84,6 +98,16 @@ Route::middleware('auth')->group(function (): void {
             Route::post('/reports/{report}/verification', [InfrastructureVerificationController::class, 'update'])
                 ->name('reports.verification.update');
         });
+
+        Route::get('/reports/{report}/export/excel', [InfrastructureReportController::class, 'exportDetailExcel'])
+            ->middleware('permission:reports.view')
+            ->name('reports.export.detail.excel');
+        Route::get('/reports/{report}/export/pdf', [InfrastructureReportController::class, 'exportDetailPdf'])
+            ->middleware('permission:reports.view')
+            ->name('reports.export.detail.pdf');
+        Route::get('/reports/{report}/export/print', [InfrastructureReportController::class, 'exportDetailPrint'])
+            ->middleware('permission:reports.view')
+            ->name('reports.export.detail.print');
 
         Route::get('/reports/{report}', [InfrastructureReportController::class, 'show'])
             ->middleware('permission:reports.view')

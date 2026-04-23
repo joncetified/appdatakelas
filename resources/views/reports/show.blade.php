@@ -22,6 +22,11 @@
                 <span class="rounded-full px-3 py-2 text-xs font-semibold {{ $statusClasses[$report->status] ?? 'bg-slate-100 text-slate-700' }}">
                     {{ $report->status_label }}
                 </span>
+                @if ($canExportReport)
+                    <a href="{{ route('reports.export.detail.excel', $report) }}" class="btn-secondary">Excel</a>
+                    <a href="{{ route('reports.export.detail.pdf', $report) }}" class="btn-secondary" target="_blank" rel="noopener">PDF</a>
+                    <a href="{{ route('reports.export.detail.print', $report) }}" class="btn-secondary" target="_blank" rel="noopener">Print</a>
+                @endif
                 @if ($canEdit)
                     <a href="{{ route('reports.edit', $report) }}" class="btn-primary">Edit Laporan</a>
                 @endif

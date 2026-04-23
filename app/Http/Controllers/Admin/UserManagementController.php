@@ -15,8 +15,7 @@ class UserManagementController extends Controller
 {
     public function __construct(
         private readonly ActivityService $activityService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): View
     {
@@ -43,7 +42,7 @@ class UserManagementController extends Controller
     public function create(Request $request): View
     {
         return view('admin.users.form', [
-            'user' => new User(),
+            'user' => new User,
             'roleOptions' => User::manageableRoleOptionsFor($request->user()),
             'pageTitle' => 'Tambah Pengguna',
             'submitLabel' => 'Simpan Pengguna',
@@ -91,6 +90,7 @@ class UserManagementController extends Controller
         abort_unless($user->canBeManagedBy($request->user()), 403);
 
         $validated = $this->validatePayload($request, $request->user(), $user);
+        $targetRole = $validated['role'] ?? $user->role;
 
         if (blank($validated['password'] ?? null)) {
             unset($validated['password']);
@@ -106,7 +106,14 @@ class UserManagementController extends Controller
             ]);
         }
 
-        $roleChanged = ($validated['role'] ?? $user->role) !== $user->role;
+        $roleChanged = $targetRole !== $user->role;
+
+        if ($roleChanged) {
+            $validated['email_verified_at'] = User::roleRequiresEmailVerification($targetRole)
+                ? null
+                : ($user->email_verified_at ?? now());
+        }
+
         $user->update($validated);
 
         if ($roleChanged) {

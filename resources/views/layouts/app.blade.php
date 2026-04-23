@@ -50,6 +50,9 @@
                 </div>
 
                 <nav class="space-y-2 p-4">
+                    <a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.*') ? 'nav-link nav-link-active' : 'nav-link' }}">
+                        Profil Akun
+                    </a>
                     @if ($user->hasPermission('dashboard.view'))
                         <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'nav-link nav-link-active' : 'nav-link' }}">
                             Dashboard
@@ -104,9 +107,27 @@
 
                 <div class="mt-auto border-t border-slate-200/70 p-4">
                     <div class="rounded-3xl bg-slate-950 px-4 py-4 text-white shadow-lg shadow-slate-950/20">
-                        <p class="text-sm font-medium">{{ $user->name }}</p>
-                        <p class="mt-1 text-xs uppercase tracking-[0.28em] text-white/60">{{ $user->role_label }}</p>
+                        <div class="flex items-center gap-4">
+                            @if ($user->avatar_url)
+                                <img
+                                    src="{{ $user->avatar_url }}"
+                                    alt="{{ $user->name }}"
+                                    class="h-14 w-14 rounded-2xl object-cover"
+                                >
+                            @else
+                                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-sm font-semibold text-white">
+                                    {{ $user->initials }}
+                                </div>
+                            @endif
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-medium">{{ $user->name }}</p>
+                                <p class="mt-1 text-xs uppercase tracking-[0.28em] text-white/60">{{ $user->role_label }}</p>
+                            </div>
+                        </div>
                         <p class="mt-3 text-sm text-white/70">{{ $user->email }}</p>
+                        <a href="{{ route('profile.edit') }}" class="mt-4 inline-flex text-sm font-semibold text-white underline underline-offset-4">
+                            Kelola profil
+                        </a>
                     </div>
 
                     <form method="POST" action="{{ route('logout') }}" class="mt-4">

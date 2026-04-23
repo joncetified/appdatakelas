@@ -8,7 +8,7 @@
             Setiap kelas bisa ditautkan ke satu ketua kelas dan satu wali kelas.
         </p>
         <div class="mt-5 rounded-3xl bg-slate-50 px-5 py-5 text-sm leading-6 text-slate-600">
-            Dropdown hanya menampilkan ketua kelas dan wali kelas yang belum dipakai di kelas lain, atau yang saat ini sudah terhubung ke kelas ini.
+            Dropdown hanya menampilkan ketua kelas dan wali kelas aktif yang belum dipakai di kelas lain, atau yang saat ini sudah terhubung ke kelas ini.
         </div>
     </section>
 

@@ -15,8 +15,7 @@ class ClassroomController extends Controller
 {
     public function __construct(
         private readonly ActivityService $activityService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): View
     {
@@ -45,7 +44,7 @@ class ClassroomController extends Controller
     public function create(): View
     {
         return view('admin.classrooms.form', [
-            'classroom' => new Classroom(),
+            'classroom' => new Classroom,
             'leaders' => $this->availableLeaders(),
             'homeroomTeachers' => $this->availableHomeroomTeachers(),
             'pageTitle' => 'Tambah Kelas',
@@ -123,13 +122,17 @@ class ClassroomController extends Controller
             'leader_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', User::ROLE_CLASS_LEADER)),
+                Rule::exists('users', 'id')->where(fn ($query) => $query
+                    ->where('role', User::ROLE_CLASS_LEADER)
+                    ->whereNull('deleted_at')),
                 Rule::unique('classrooms', 'leader_id')->ignore($classroom),
             ],
             'homeroom_teacher_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', User::ROLE_HOMEROOM_TEACHER)),
+                Rule::exists('users', 'id')->where(fn ($query) => $query
+                    ->where('role', User::ROLE_HOMEROOM_TEACHER)
+                    ->whereNull('deleted_at')),
                 Rule::unique('classrooms', 'homeroom_teacher_id')->ignore($classroom),
             ],
         ]);

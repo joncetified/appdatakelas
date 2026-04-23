@@ -2,10 +2,51 @@
 
 @section('content')
     <section class="panel px-6 py-6 lg:px-8">
-        <h2 class="text-3xl font-semibold text-slate-950">Backup, Import, dan Tools</h2>
-        <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-            Menu ini menyimpan backup database, restore backup, export/import data users dan items, clear cache, dan reset database. Gunakan dengan hati-hati.
-        </p>
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.34em] text-slate-500">Operasional Sistem</p>
+                <h2 class="mt-3 text-3xl font-semibold text-slate-950">Backup, import, dan recovery</h2>
+                <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+                    Semua alat administrasi penting dikumpulkan di sini: backup database, restore, export/import CSV, clear cache, dan reset total sistem.
+                </p>
+            </div>
+            <div class="rounded-[28px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm shadow-amber-100/80 lg:max-w-sm">
+                <p class="font-semibold">Area berisiko tinggi</p>
+                <p class="mt-2 leading-6 text-amber-800">
+                    Backup dan reset berdampak langsung ke data produksi. Pastikan file yang diunggah sesuai format sebelum dijalankan.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid gap-4 xl:grid-cols-3">
+        <article class="panel px-5 py-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Backup JSON</p>
+            <h3 class="mt-2 text-xl font-semibold text-slate-950">Snapshot penuh aplikasi</h3>
+            <p class="mt-3 text-sm leading-6 text-slate-600">
+                Dipakai untuk recovery total. File backup berisi data setting, pengguna, kelas, laporan, item, dan income.
+            </p>
+        </article>
+        <article class="panel px-5 py-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">CSV Users</p>
+            <h3 class="mt-2 text-xl font-semibold text-slate-950">Kolom wajib</h3>
+            <p class="mt-3 text-sm leading-6 text-slate-600">
+                <code class="rounded-xl bg-slate-100 px-2 py-1 text-xs text-slate-700">name,email,role,whatsapp_number,permissions,deleted_at</code>
+            </p>
+            <p class="mt-3 text-sm leading-6 text-slate-600">
+                Role di luar kewenangan operator akan dilewati otomatis saat import.
+            </p>
+        </article>
+        <article class="panel px-5 py-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">CSV Items</p>
+            <h3 class="mt-2 text-xl font-semibold text-slate-950">Validasi baris import</h3>
+            <p class="mt-3 text-sm leading-6 text-slate-600">
+                <code class="rounded-xl bg-slate-100 px-2 py-1 text-xs text-slate-700">infrastructure_report_id,item_name,total_units,damaged_units,notes</code>
+            </p>
+            <p class="mt-3 text-sm leading-6 text-slate-600">
+                Baris dengan total unit tidak valid atau unit rusak melebihi total sekarang dilewati agar data laporan tetap konsisten.
+            </p>
+        </article>
     </section>
 
     <section class="grid gap-4 xl:grid-cols-2">
@@ -48,7 +89,8 @@
                         @csrf
                         <div>
                             <label for="backup_file" class="label">File Backup</label>
-                            <input id="backup_file" name="backup_file" type="file" class="field mt-2" required>
+                            <input id="backup_file" name="backup_file" type="file" accept=".json,application/json,.txt,text/plain" class="field mt-2" required>
+                            <p class="mt-2 text-sm text-slate-500">Gunakan file <code class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">.json</code> hasil backup sistem ini.</p>
                         </div>
                         <button type="submit" class="btn-primary">Restore Backup</button>
                     </form>
@@ -87,7 +129,8 @@
                     @csrf
                     <div>
                         <label for="users_file" class="label">CSV Users</label>
-                        <input id="users_file" name="users_file" type="file" class="field mt-2" required>
+                        <input id="users_file" name="users_file" type="file" accept=".csv,text/csv,.txt,text/plain" class="field mt-2" required>
+                        <p class="mt-2 text-sm text-slate-500">Header wajib: <code class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">name,email,role,whatsapp_number,permissions,deleted_at</code>.</p>
                     </div>
                     <button type="submit" class="btn-primary">Import Users</button>
                 </form>
@@ -96,7 +139,8 @@
                     @csrf
                     <div>
                         <label for="items_file" class="label">CSV Items</label>
-                        <input id="items_file" name="items_file" type="file" class="field mt-2" required>
+                        <input id="items_file" name="items_file" type="file" accept=".csv,text/csv,.txt,text/plain" class="field mt-2" required>
+                        <p class="mt-2 text-sm text-slate-500">Baris invalid akan dilewati otomatis dan dihitung pada notifikasi hasil import.</p>
                     </div>
                     <button type="submit" class="btn-secondary">Import Items</button>
                 </form>

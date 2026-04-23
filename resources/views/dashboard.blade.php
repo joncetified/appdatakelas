@@ -16,7 +16,7 @@
     ];
 
     $chartLabels = [
-        'bar' => 'Diagram Chart',
+        'bar' => 'Diagram Batang',
         'pie' => 'Diagram Pie',
     ];
 @endphp
@@ -105,23 +105,23 @@
         @if ($incomeCards)
             <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <article class="panel px-5 py-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Daily</p>
-                    <p class="mt-2 text-sm text-slate-500">Today</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Harian</p>
+                    <p class="mt-2 text-sm text-slate-500">Hari Ini</p>
                     <p class="mt-3 text-3xl font-semibold text-slate-950">Rp {{ number_format($incomeCards['today'], 0, ',', '.') }}</p>
                 </article>
                 <article class="panel px-5 py-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Daily</p>
-                    <p class="mt-2 text-sm text-slate-500">Yesterday</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Harian</p>
+                    <p class="mt-2 text-sm text-slate-500">Kemarin</p>
                     <p class="mt-3 text-3xl font-semibold text-slate-950">Rp {{ number_format($incomeCards['yesterday'], 0, ',', '.') }}</p>
                 </article>
                 <article class="panel px-5 py-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Monthly</p>
-                    <p class="mt-2 text-sm text-slate-500">This Month</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Bulanan</p>
+                    <p class="mt-2 text-sm text-slate-500">Bulan Ini</p>
                     <p class="mt-3 text-3xl font-semibold text-emerald-600">Rp {{ number_format($incomeCards['this_month'], 0, ',', '.') }}</p>
                 </article>
                 <article class="panel px-5 py-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Monthly</p>
-                    <p class="mt-2 text-sm text-slate-500">Last Month</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Bulanan</p>
+                    <p class="mt-2 text-sm text-slate-500">Bulan Lalu</p>
                     <p class="mt-3 text-3xl font-semibold text-sky-600">Rp {{ number_format($incomeCards['last_month'], 0, ',', '.') }}</p>
                 </article>
             </section>

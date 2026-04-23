@@ -6,46 +6,33 @@ use App\Models\Classroom;
 use App\Models\InfrastructureReport;
 use App\Models\User;
 use App\Services\ActivityService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class InfrastructureReportController extends Controller
 {
     public function __construct(
         private readonly ActivityService $activityService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): View
     {
         $user = $request->user();
-        $status = $request->string('status')->toString();
-        $search = trim($request->string('q')->toString());
         $assignedClassroom = $user->isClassLeader()
             ? $user->ledClassroom()->with('homeroomTeacher')->first()
             : null;
         $classroomOptions = $user->isSuperAdmin() ? $this->classroomOptions() : collect();
+        $filters = $this->reportFilters($request);
 
-        $reports = InfrastructureReport::query()
-            ->with(['classroom', 'reporter', 'verifier', 'items', 'createdByUser', 'updatedByUser'])
-            ->visibleTo($user)
-            ->when(array_key_exists($status, InfrastructureReport::statusOptions()), fn ($query) => $query->where('status', $status))
-            ->when($search !== '', function ($query) use ($search): void {
-                $query->where(function ($builder) use ($search): void {
-                    $builder
-                        ->whereHas('classroom', fn ($related) => $related->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('reporter', fn ($related) => $related->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('verifier', fn ($related) => $related->where('name', 'like', "%{$search}%"))
-                        ->orWhere('notes', 'like', "%{$search}%")
-                        ->orWhere('verification_notes', 'like', "%{$search}%");
-                });
-            })
+        $reports = $this->reportIndexQuery($request)
             ->latest('report_date')
             ->latest('created_at')
             ->paginate(10)
@@ -57,6 +44,66 @@ class InfrastructureReportController extends Controller
             'assignedClassroom' => $assignedClassroom,
             'canCreateReport' => ($user->isClassLeader() && $assignedClassroom)
                 || ($user->isSuperAdmin() && $classroomOptions->isNotEmpty()),
+            'canExportReports' => $this->canExportReports($user),
+            'exportFilters' => array_filter($filters, fn ($value) => filled($value)),
+        ]);
+    }
+
+    public function exportExcel(Request $request): Response
+    {
+        $export = $this->reportExportData($request);
+        $filename = 'laporan_infrastruktur_'.now()->format('Ymd_His').'.xls';
+
+        return response()
+            ->view('reports.export-excel', $export)
+            ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
+            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+    }
+
+    public function exportPdf(Request $request): View
+    {
+        return view('reports.export-print', [
+            ...$this->reportExportData($request),
+            'outputMode' => 'pdf',
+            'autoPrint' => true,
+        ]);
+    }
+
+    public function exportPrint(Request $request): View
+    {
+        return view('reports.export-print', [
+            ...$this->reportExportData($request),
+            'outputMode' => 'print',
+            'autoPrint' => true,
+        ]);
+    }
+
+    public function exportDetailExcel(Request $request, InfrastructureReport $report): Response
+    {
+        $export = $this->singleReportExportData($request, $report);
+        $filename = 'laporan_infrastruktur_'.$report->id.'_'.now()->format('Ymd_His').'.xls';
+
+        return response()
+            ->view('reports.export-detail-excel', $export)
+            ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
+            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+    }
+
+    public function exportDetailPdf(Request $request, InfrastructureReport $report): View
+    {
+        return view('reports.export-detail-print', [
+            ...$this->singleReportExportData($request, $report),
+            'outputMode' => 'pdf',
+            'autoPrint' => true,
+        ]);
+    }
+
+    public function exportDetailPrint(Request $request, InfrastructureReport $report): View
+    {
+        return view('reports.export-detail-print', [
+            ...$this->singleReportExportData($request, $report),
+            'outputMode' => 'print',
+            'autoPrint' => true,
         ]);
     }
 
@@ -117,6 +164,7 @@ class InfrastructureReportController extends Controller
             'report' => $report,
             'canVerify' => $this->canVerify($request->user(), $report),
             'canEdit' => $this->canEdit($request->user(), $report),
+            'canExportReport' => $this->canExportReports($request->user()),
         ]);
     }
 
@@ -304,6 +352,114 @@ class InfrastructureReportController extends Controller
         return $user->isClassLeader()
             && $report->classroom->leader_id === $user->id
             && $report->isEditable();
+    }
+
+    private function canExportReports(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->isManager();
+    }
+
+    /**
+     * @return array{q: string, status: string}
+     */
+    private function reportFilters(Request $request): array
+    {
+        return [
+            'q' => trim($request->string('q')->toString()),
+            'status' => $request->string('status')->toString(),
+        ];
+    }
+
+    private function reportIndexQuery(Request $request): Builder
+    {
+        $user = $request->user();
+        $filters = $this->reportFilters($request);
+
+        return InfrastructureReport::query()
+            ->with(['classroom', 'reporter', 'verifier', 'items', 'createdByUser', 'updatedByUser'])
+            ->visibleTo($user)
+            ->when(
+                array_key_exists($filters['status'], InfrastructureReport::statusOptions()),
+                fn (Builder $query) => $query->where('status', $filters['status'])
+            )
+            ->when($filters['q'] !== '', function (Builder $query) use ($filters): void {
+                $search = $filters['q'];
+
+                $query->where(function (Builder $builder) use ($search): void {
+                    $builder
+                        ->whereHas('classroom', fn (Builder $related) => $related->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('reporter', fn (Builder $related) => $related->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('verifier', fn (Builder $related) => $related->where('name', 'like', "%{$search}%"))
+                        ->orWhere('notes', 'like', "%{$search}%")
+                        ->orWhere('verification_notes', 'like', "%{$search}%");
+                });
+            });
+    }
+
+    /**
+     * @return array{
+     *     reports: Collection<int, InfrastructureReport>,
+     *     filters: array{q: string, status: string},
+     *     totals: array{reports: int, items: int, total_units: int, damaged_units: int},
+     *     exportedAt: string,
+     *     exportedBy: User
+     * }
+     */
+    private function reportExportData(Request $request): array
+    {
+        $user = $request->user();
+
+        abort_unless($this->canExportReports($user), 403, 'Role ini tidak diizinkan mengekspor laporan.');
+
+        $reports = $this->reportIndexQuery($request)
+            ->orderByDesc('report_date')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return [
+            'reports' => $reports,
+            'filters' => $this->reportFilters($request),
+            'totals' => [
+                'reports' => $reports->count(),
+                'items' => (int) $reports->sum(fn (InfrastructureReport $report) => $report->items->count()),
+                'total_units' => (int) $reports->sum(fn (InfrastructureReport $report) => $report->total_units),
+                'damaged_units' => (int) $reports->sum(fn (InfrastructureReport $report) => $report->damaged_units),
+            ],
+            'exportedAt' => now()->translatedFormat('d F Y H:i'),
+            'exportedBy' => $user,
+        ];
+    }
+
+    /**
+     * @return array{
+     *     report: InfrastructureReport,
+     *     exportedAt: string,
+     *     exportedBy: User
+     * }
+     */
+    private function singleReportExportData(Request $request, InfrastructureReport $report): array
+    {
+        $user = $request->user();
+
+        abort_unless($this->canExportReports($user), 403, 'Role ini tidak diizinkan mengekspor laporan.');
+
+        $report->load([
+            'classroom.leader',
+            'classroom.homeroomTeacher',
+            'reporter',
+            'verifier',
+            'items',
+            'createdByUser',
+            'updatedByUser',
+        ]);
+
+        $this->authorizeView($user, $report);
+
+        return [
+            'report' => $report,
+            'exportedAt' => now()->translatedFormat('d F Y H:i'),
+            'exportedBy' => $user,
+        ];
     }
 
     /**

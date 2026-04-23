@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Models\Classroom;
 use App\Models\InfrastructureReport;
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -425,5 +425,160 @@ class InfrastructureWorkflowTest extends TestCase
             'damaged_units' => 1,
             'notes' => 'Data update',
         ]);
+    }
+
+    public function test_manager_can_export_filtered_reports_to_excel_pdf_and_print(): void
+    {
+        $manager = User::factory()->manager()->create();
+        $leader = User::factory()->classLeader()->create();
+        $homeroomTeacher = User::factory()->homeroomTeacher()->create();
+        $otherLeader = User::factory()->classLeader()->create();
+        $otherHomeroomTeacher = User::factory()->homeroomTeacher()->create();
+
+        $lab = Classroom::factory()->create([
+            'name' => 'Lab Komputer',
+            'leader_id' => $leader->id,
+            'homeroom_teacher_id' => $homeroomTeacher->id,
+        ]);
+
+        $regularClass = Classroom::factory()->create([
+            'name' => 'XII IPA 1',
+            'leader_id' => $otherLeader->id,
+            'homeroom_teacher_id' => $otherHomeroomTeacher->id,
+        ]);
+
+        InfrastructureReport::factory()->create([
+            'classroom_id' => $lab->id,
+            'reported_by_id' => $leader->id,
+            'report_date' => '2026-04-14',
+        ]);
+
+        InfrastructureReport::factory()->create([
+            'classroom_id' => $regularClass->id,
+            'reported_by_id' => $otherLeader->id,
+            'report_date' => '2026-04-15',
+        ]);
+
+        $excelResponse = $this->actingAs($manager)
+            ->get(route('reports.export.excel', ['q' => 'Lab Komputer']));
+
+        $excelResponse->assertOk();
+        $excelResponse->assertHeader('content-type', 'application/vnd.ms-excel; charset=UTF-8');
+        $excelResponse->assertSee('Lab Komputer');
+        $excelResponse->assertDontSee('XII IPA 1');
+
+        $pdfResponse = $this->actingAs($manager)
+            ->get(route('reports.export.pdf', ['q' => 'Lab Komputer']));
+
+        $pdfResponse->assertOk();
+        $pdfResponse->assertSee('Save as PDF');
+        $pdfResponse->assertSee('Lab Komputer');
+        $pdfResponse->assertDontSee('XII IPA 1');
+
+        $printResponse = $this->actingAs($manager)
+            ->get(route('reports.export.print', ['q' => 'Lab Komputer']));
+
+        $printResponse->assertOk();
+        $printResponse->assertSee('Dokumen Print Siap Cetak');
+        $printResponse->assertSee('Lab Komputer');
+        $printResponse->assertDontSee('XII IPA 1');
+    }
+
+    public function test_class_leader_cannot_access_report_export_routes(): void
+    {
+        $leader = User::factory()->classLeader()->create();
+
+        $this->actingAs($leader)
+            ->get(route('reports.export.excel'))
+            ->assertForbidden();
+
+        $this->actingAs($leader)
+            ->get(route('reports.export.pdf'))
+            ->assertForbidden();
+
+        $this->actingAs($leader)
+            ->get(route('reports.export.print'))
+            ->assertForbidden();
+    }
+
+    public function test_manager_can_export_single_report_detail_to_excel_pdf_and_print(): void
+    {
+        $manager = User::factory()->manager()->create();
+        $leader = User::factory()->classLeader()->create();
+        $homeroomTeacher = User::factory()->homeroomTeacher()->create();
+        $classroom = Classroom::factory()->create([
+            'name' => 'Lab Komputer',
+            'leader_id' => $leader->id,
+            'homeroom_teacher_id' => $homeroomTeacher->id,
+        ]);
+
+        $report = InfrastructureReport::factory()->create([
+            'classroom_id' => $classroom->id,
+            'reported_by_id' => $leader->id,
+            'report_date' => '2026-04-16',
+            'notes' => 'Catatan umum lab.',
+            'verification_notes' => 'Sudah dicek.',
+            'status' => InfrastructureReport::STATUS_VERIFIED,
+            'verified_by_id' => $homeroomTeacher->id,
+            'verified_at' => now(),
+        ]);
+
+        $report->items()->create([
+            'item_name' => 'Komputer',
+            'total_units' => 24,
+            'damaged_units' => 2,
+            'notes' => 'Butuh maintenance rutin.',
+        ]);
+
+        $excelResponse = $this->actingAs($manager)
+            ->get(route('reports.export.detail.excel', $report));
+
+        $excelResponse->assertOk();
+        $excelResponse->assertHeader('content-type', 'application/vnd.ms-excel; charset=UTF-8');
+        $excelResponse->assertSee('Lab Komputer');
+        $excelResponse->assertSee('Komputer');
+
+        $pdfResponse = $this->actingAs($manager)
+            ->get(route('reports.export.detail.pdf', $report));
+
+        $pdfResponse->assertOk();
+        $pdfResponse->assertSee('Save as PDF');
+        $pdfResponse->assertSee('Catatan umum lab.');
+        $pdfResponse->assertSee('Komputer');
+
+        $printResponse = $this->actingAs($manager)
+            ->get(route('reports.export.detail.print', $report));
+
+        $printResponse->assertOk();
+        $printResponse->assertSee('Detail Laporan');
+        $printResponse->assertSee('Komputer');
+    }
+
+    public function test_class_leader_cannot_access_single_report_export_routes(): void
+    {
+        $leader = User::factory()->classLeader()->create();
+        $otherLeader = User::factory()->classLeader()->create();
+        $homeroomTeacher = User::factory()->homeroomTeacher()->create();
+        $classroom = Classroom::factory()->create([
+            'leader_id' => $otherLeader->id,
+            'homeroom_teacher_id' => $homeroomTeacher->id,
+        ]);
+
+        $report = InfrastructureReport::factory()->create([
+            'classroom_id' => $classroom->id,
+            'reported_by_id' => $otherLeader->id,
+        ]);
+
+        $this->actingAs($leader)
+            ->get(route('reports.export.detail.excel', $report))
+            ->assertForbidden();
+
+        $this->actingAs($leader)
+            ->get(route('reports.export.detail.pdf', $report))
+            ->assertForbidden();
+
+        $this->actingAs($leader)
+            ->get(route('reports.export.detail.print', $report))
+            ->assertForbidden();
     }
 }

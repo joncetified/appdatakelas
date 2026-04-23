@@ -20,9 +20,16 @@
                     Lihat semua laporan yang sesuai dengan peran Anda, lalu buka detail untuk peninjauan atau perbaikan data.
                 </p>
             </div>
-            @if ($canCreateReport)
-                <a href="{{ route('reports.create') }}" class="btn-primary">Input Laporan Baru</a>
-            @endif
+            <div class="flex flex-wrap gap-3">
+                @if ($canExportReports)
+                    <a href="{{ route('reports.export.excel', $exportFilters) }}" class="btn-secondary">Excel</a>
+                    <a href="{{ route('reports.export.pdf', $exportFilters) }}" class="btn-secondary" target="_blank" rel="noopener">PDF</a>
+                    <a href="{{ route('reports.export.print', $exportFilters) }}" class="btn-secondary" target="_blank" rel="noopener">Print</a>
+                @endif
+                @if ($canCreateReport)
+                    <a href="{{ route('reports.create') }}" class="btn-primary">Input Laporan Baru</a>
+                @endif
+            </div>
         </div>
     </section>
 

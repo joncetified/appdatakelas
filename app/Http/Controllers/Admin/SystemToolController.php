@@ -9,6 +9,7 @@ use App\Services\ActivityService;
 use App\Services\BackupService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -20,8 +21,7 @@ class SystemToolController extends Controller
     public function __construct(
         private readonly ActivityService $activityService,
         private readonly BackupService $backupService,
-    ) {
-    }
+    ) {}
 
     public function index(): View
     {
@@ -149,38 +149,62 @@ class SystemToolController extends Controller
 
         $allowedRoles = array_keys(User::manageableRoleOptionsFor($request->user()));
         $rows = $this->parseCsvRows($validated['users_file']);
+        $processed = 0;
+        $skipped = 0;
 
         foreach ($rows as $data) {
             $role = trim((string) ($data['role'] ?? ''));
             if (! in_array($role, $allowedRoles, true)) {
+                $skipped++;
+
                 continue;
             }
 
             $email = trim((string) ($data['email'] ?? ''));
             if ($email === '') {
+                $skipped++;
+
                 continue;
             }
 
-            $user = User::query()->firstOrNew(['email' => $email]);
+            $user = User::withTrashed()->firstOrNew(['email' => $email]);
 
             if ($user->exists && ! $user->canBeManagedBy($request->user())) {
+                $skipped++;
+
                 continue;
+            }
+
+            $name = trim((string) ($data['name'] ?? ''));
+            if ($name === '') {
+                $skipped++;
+
+                continue;
+            }
+
+            $emailVerifiedAt = $user->email_verified_at;
+
+            if (! User::roleRequiresEmailVerification($role) && ! $emailVerifiedAt) {
+                $emailVerifiedAt = now();
             }
 
             $user->fill([
-                'name' => trim((string) ($data['name'] ?? '')),
+                'name' => $name,
                 'role' => $role,
                 'whatsapp_number' => trim((string) ($data['whatsapp_number'] ?? '')) ?: null,
+                'email_verified_at' => $emailVerifiedAt,
             ]);
 
             if (! $user->exists) {
                 $user->password = 'Password123!';
-                $user->email_verified_at = now();
-            } elseif (! $user->email_verified_at) {
-                $user->email_verified_at = now();
+                $user->email_verified_at = User::roleRequiresEmailVerification($role) ? null : $emailVerifiedAt;
             }
 
             $user->save();
+
+            if ($user->trashed()) {
+                $user->restore();
+            }
 
             $permissions = collect(explode('|', (string) ($data['permissions'] ?? '')))
                 ->map(fn ($slug) => trim($slug))
@@ -193,11 +217,12 @@ class SystemToolController extends Controller
             }
 
             $user->syncPermissionsBySlugs($permissions !== [] ? $permissions : User::defaultPermissionSlugsForRole($user->role));
+            $processed++;
         }
 
         $this->activityService->log('users.imported', 'Import users dari CSV dijalankan.');
 
-        return back()->with('success', 'Import users selesai diproses.');
+        return back()->with('success', "Import users selesai: {$processed} baris diproses, {$skipped} baris dilewati.");
     }
 
     public function exportItems()
@@ -231,31 +256,48 @@ class SystemToolController extends Controller
             'items_file' => ['required', 'file', 'mimes:csv,txt'],
         ]);
 
+        $processed = 0;
+        $skipped = 0;
+
         foreach ($this->parseCsvRows($validated['items_file']) as $data) {
             $report = InfrastructureReport::query()->find((int) ($data['infrastructure_report_id'] ?? 0));
 
             if (! $report) {
+                $skipped++;
+
                 continue;
             }
 
             $itemName = trim((string) ($data['item_name'] ?? ''));
             if ($itemName === '') {
+                $skipped++;
+
+                continue;
+            }
+
+            $totalUnits = (int) ($data['total_units'] ?? 0);
+            $damagedUnits = (int) ($data['damaged_units'] ?? 0);
+
+            if ($totalUnits < 1 || $damagedUnits < 0 || $damagedUnits > $totalUnits) {
+                $skipped++;
+
                 continue;
             }
 
             $report->items()->updateOrCreate([
                 'item_name' => $itemName,
             ], [
-                'item_name' => trim((string) ($data['item_name'] ?? '')),
-                'total_units' => (int) ($data['total_units'] ?? 0),
-                'damaged_units' => (int) ($data['damaged_units'] ?? 0),
+                'item_name' => $itemName,
+                'total_units' => $totalUnits,
+                'damaged_units' => $damagedUnits,
                 'notes' => trim((string) ($data['notes'] ?? '')) ?: null,
             ]);
+            $processed++;
         }
 
         $this->activityService->log('items.imported', 'Import items laporan dari CSV dijalankan.');
 
-        return back()->with('success', 'Import items selesai diproses.');
+        return back()->with('success', "Import items selesai: {$processed} baris diproses, {$skipped} baris dilewati.");
     }
 
     private function escapeCsv(string $value): string
@@ -266,7 +308,7 @@ class SystemToolController extends Controller
     /**
      * @return list<array<string, string|null>>
      */
-    private function parseCsvRows(\Illuminate\Http\UploadedFile $file): array
+    private function parseCsvRows(UploadedFile $file): array
     {
         $contents = trim((string) $file->get());
 
