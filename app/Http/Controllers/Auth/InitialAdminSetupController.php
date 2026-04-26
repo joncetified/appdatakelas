@@ -13,6 +13,8 @@ class InitialAdminSetupController extends Controller
 {
     public function create(Request $request): View|RedirectResponse
     {
+        abort_unless(config('app.setup_allowed'), 403, 'Akses ke halaman setup admin telah dinonaktifkan.');
+
         if (User::query()->exists()) {
             return redirect()->route($request->user() ? 'dashboard' : 'login');
         }
@@ -22,6 +24,8 @@ class InitialAdminSetupController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless(config('app.setup_allowed'), 403, 'Akses ke halaman setup admin telah dinonaktifkan.');
+
         if (User::query()->exists()) {
             return redirect()->route('login');
         }

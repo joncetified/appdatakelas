@@ -16,6 +16,13 @@
         @apply bg-[linear-gradient(180deg,#fffaf0_0%,#f8fafc_48%,#eef2ff_100%)] font-sans antialiased;
     }
 
+    .app-shell {
+        background-image:
+            radial-gradient(circle at top left, rgba(251, 191, 36, 0.12), transparent 28%),
+            radial-gradient(circle at top right, rgba(14, 165, 233, 0.1), transparent 30%),
+            linear-gradient(180deg, #fff9ef 0%, #f8fafc 46%, #eef4ff 100%);
+    }
+
     ::selection {
         @apply bg-amber-200 text-slate-950;
     }
@@ -23,23 +30,23 @@
 
 @layer components {
     .panel {
-        @apply rounded-[32px] border border-white/70 bg-white/80 shadow-[0_20px_70px_-35px_rgba(15,23,42,0.45)] backdrop-blur-xl;
+        @apply rounded-[32px] border border-white/80 bg-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-2xl transition-all duration-300;
     }
 
     .nav-link {
-        @apply flex items-center rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-950 hover:text-white;
+        @apply flex items-center rounded-[22px] px-4 py-3 text-sm font-medium text-slate-500 transition-all duration-200 hover:bg-white hover:text-slate-900 hover:shadow-sm;
     }
 
     .nav-link-active {
-        @apply bg-slate-950 text-white shadow-lg shadow-slate-950/15;
+        @apply bg-slate-900 text-white shadow-lg shadow-slate-900/15 hover:bg-slate-800 hover:text-white;
     }
 
     .btn-primary {
-        @apply inline-flex items-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800;
+        @apply inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md hover:shadow-slate-900/20 active:translate-y-0;
     }
 
     .btn-secondary {
-        @apply inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50;
+        @apply inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-md active:translate-y-0;
     }
 
     .field {
@@ -48,6 +55,30 @@
 
     .label {
         @apply text-sm font-semibold text-slate-700;
+    }
+
+    .status-chip {
+        @apply inline-flex items-center rounded-full border border-amber-200/80 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-700;
+    }
+
+    .hero-stat {
+        @apply rounded-[28px] border border-white/80 bg-white/85 px-5 py-5 shadow-sm shadow-slate-200/60;
+    }
+
+    .metric-card {
+        @apply relative overflow-hidden rounded-[32px] border border-white/80 bg-white/70 px-6 py-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-2xl transition-all duration-300;
+    }
+
+    .metric-card::after {
+        content: '';
+        @apply pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent;
+    }
+
+    .soft-grid {
+        background-image:
+            linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+        background-size: 26px 26px;
     }
 
     .chatbot-scrollbar {

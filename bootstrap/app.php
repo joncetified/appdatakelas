@@ -51,7 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 default => $defaultMessage,
             };
 
-            $brandName = 'Sekolah Permata Harapan';
+            $brandName = 'SPH';
             $brandLogoPath = 'site/permata-harapan-logo.svg';
             $homeUrl = $request->user() ? route('dashboard') : route('login');
 

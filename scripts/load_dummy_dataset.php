@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Classroom;
 use App\Models\IncomeEntry;
 use App\Models\InfrastructureReport;
+use App\Models\InfrastructureReportItem;
 use App\Models\Permission;
 use App\Models\SiteSetting;
 use App\Models\User;
@@ -27,16 +28,14 @@ DB::transaction(function (): void {
         ->first();
 
     if (! $superAdmin) {
-        throw new RuntimeException('Super admin belum ada. Buat super admin terlebih dahulu.');
+        throw new RuntimeException('Super admin belum ada.');
     }
 
     $touchAudit = function (Model $model) use ($superAdmin): void {
         $payload = ['updated_by' => $superAdmin->id];
-
         if (blank($model->getAttribute('created_by'))) {
             $payload['created_by'] = $superAdmin->id;
         }
-
         $model->forceFill($payload)->saveQuietly();
     };
 
@@ -68,16 +67,16 @@ DB::transaction(function (): void {
 
         $user->syncPermissionsBySlugs(User::defaultPermissionSlugsForRole($user->role));
         $touchAudit($user);
-
         return $user->fresh();
     };
 
+    // Site Settings
     $siteSetting = SiteSetting::query()->firstOrFail();
     $siteSetting->forceFill([
-        'company_name' => 'Sekolah Permata Harapan',
-        'address' => 'Jl. Raya Pendidikan No. 8, Cibinong, Bogor',
-        'manager_name' => 'Hadi Santoso, S.Pd.',
-        'contact_email' => 'info@sekolahpermataharapan.test',
+        'company_name' => 'SPH',
+        'address' => 'Jl. Permata No. 123, Kawasan Pendidikan, Indonesia',
+        'manager_name' => 'Dr. H. Ahmad Permana, M.Pd.',
+        'contact_email' => 'info@permataharapan.sch.id',
         'contact_phone' => '021-87904567',
         'contact_whatsapp' => '081234567890',
     ])->saveQuietly();
@@ -566,7 +565,7 @@ DB::transaction(function (): void {
         [
             'action' => 'dummy.settings.loaded',
             'description' => 'Pengaturan website dummy diperbarui untuk unit SMP dan SMK.',
-            'properties' => ['company_name' => 'Sekolah Permata Harapan'],
+            'properties' => ['company_name' => 'SPH'],
         ],
         [
             'action' => 'dummy.users.loaded',

@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'InfraKelas'),
+    'name' => env('APP_NAME', 'SPH'),
 
     /*
     |--------------------------------------------------------------------------
@@ -122,5 +122,18 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Initial Setup Security
+    |--------------------------------------------------------------------------
+    |
+    | If set to true, the application will allow the initial super admin 
+    | setup page (/setup/admin) to be accessed when no users exist.
+    | Set to false after the first setup to improve security.
+    |
+    */
+
+    'setup_allowed' => (bool) env('APP_ALLOW_SETUP', true),
 
 ];

@@ -13,6 +13,7 @@ use App\Http\Controllers\Auth\InitialAdminSetupController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\InfrastructureReportController;
@@ -37,7 +38,13 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store'])->name('register.store');
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::get('/login/google', [AuthenticatedSessionController::class, 'googleRedirect'])->name('login.google');
+    Route::get('/auth-google-callback', [AuthenticatedSessionController::class, 'googleCallback'])->name('login.google.callback');
+    Route::get('/login/google/callback', [AuthenticatedSessionController::class, 'googleCallback']);
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
+    Route::get('/login/otp', [AuthenticatedSessionController::class, 'createOtp'])->name('login.otp');
+    Route::post('/login/otp', [AuthenticatedSessionController::class, 'verifyOtp'])->name('login.otp.verify');
+    Route::post('/login/otp/resend', [AuthenticatedSessionController::class, 'resendOtp'])->name('login.otp.resend');
     Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
     Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
@@ -62,6 +69,9 @@ Route::middleware('auth')->group(function (): void {
     })->name('verification.send');
 
     Route::middleware('verified')->group(function (): void {
+        Route::get('/chat', [ChatbotController::class, 'index'])->name('chat.index');
+        Route::post('/chat/message', [ChatbotController::class, 'sendMessage'])->name('chat.message');
+
         Route::get('/dashboard', DashboardController::class)
             ->middleware('permission:dashboard.view')
             ->name('dashboard');

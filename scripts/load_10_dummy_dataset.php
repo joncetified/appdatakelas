@@ -77,7 +77,7 @@ DB::transaction(function (): void {
 
     $siteSetting = SiteSetting::query()->first() ?? new SiteSetting();
     $siteSetting->forceFill([
-        'company_name' => 'Sekolah Permata Harapan',
+        'company_name' => 'SPH',
         'logo_path' => 'site/permata-harapan-logo.svg',
         'address' => 'Jl. Raya Pendidikan No. 8, Cibinong, Bogor',
         'manager_name' => 'Hadi Santoso, S.Pd.',

@@ -1,4 +1,4 @@
-@php($pageBrandName = $brandName ?? 'Sekolah Permata Harapan')
+@php($pageBrandName = $brandName ?? 'SPH')
 @php($pageBrandLogoPath = $brandLogoPath ?? 'site/permata-harapan-logo.svg')
 @php($pageHomeUrl = $homeUrl ?? url('/'))
 <!DOCTYPE html>

@@ -213,8 +213,19 @@ class InfrastructureReportController extends Controller
                 'verified_at' => null,
             ]);
 
-            $report->items()->delete();
-            $report->items()->createMany($items);
+            $itemNames = [];
+            foreach ($items as $item) {
+                $itemNames[] = $item['item_name'];
+                $report->items()->updateOrCreate(
+                    ['item_name' => $item['item_name']],
+                    [
+                        'total_units' => $item['total_units'],
+                        'damaged_units' => $item['damaged_units'],
+                        'notes' => $item['notes'],
+                    ]
+                );
+            }
+            $report->items()->whereNotIn('item_name', $itemNames)->delete();
 
             $this->activityService->log(
                 action: 'report.updated',
@@ -356,7 +367,7 @@ class InfrastructureReportController extends Controller
 
     private function canExportReports(User $user): bool
     {
-        return $user->isSuperAdmin() || $user->isManager();
+        return $user->isSuperAdmin() || $user->isAdmin() || $user->isManager();
     }
 
     /**

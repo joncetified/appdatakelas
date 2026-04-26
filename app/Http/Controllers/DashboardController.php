@@ -23,6 +23,7 @@ class DashboardController extends Controller
                 'mode' => $user->role,
                 'dashboardRoleLabel' => $user->role_label,
                 'canManageMasterData' => $user->canManageMasterData(),
+                'canExportReports' => $user->isSuperAdmin() || $user->isAdmin() || $user->isManager(),
                 'selectedPeriod' => $period,
                 'selectedChartType' => $chartType,
                 'stats' => [

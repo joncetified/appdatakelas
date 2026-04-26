@@ -31,7 +31,7 @@ class GroqSupportChatService
             );
         }
 
-        $apiKey = (string) config('services.groq.key');
+        $apiKey = (string) (config('services.groq.key') ?: config('services.groq.api_key'));
         $settings = SiteSetting::query()->first();
 
         if ($apiKey === '') {
@@ -163,7 +163,7 @@ class GroqSupportChatService
 
         if ($this->matches($normalized, ['cara login', 'login'])) {
             return $this->response(
-                answer: 'Untuk login, buka halaman Login lalu masukkan email dan password akun Anda. Jika lupa password, gunakan menu Lupa Password atau hubungi admin sekolah.',
+                answer: 'Untuk login, buka halaman Login lalu masukkan username berupa nama lengkap dan password akun Anda. Setelah itu masukkan kode OTP yang dikirim ke email. Jika lupa password, gunakan menu Lupa Password atau hubungi admin sekolah.',
                 suggestions: ['Lupa password', 'Kontak admin', 'Menu saya'],
                 actions: $this->menuItemsFor(null),
             );
@@ -254,6 +254,7 @@ class GroqSupportChatService
     {
         return match (true) {
             $currentRoute === 'dashboard' => 'Dashboard dengan statistik, laporan terbaru, dan grafik sesuai role user.',
+            $currentRoute === 'chat.index' => 'Halaman chat AI untuk tanya jawab bantuan penggunaan aplikasi.',
             $currentRoute === 'reports.index' => 'Daftar laporan infrastruktur.',
             $currentRoute === 'reports.create' => 'Form membuat laporan baru.',
             $currentRoute === 'reports.edit' => 'Form mengubah laporan yang masih bisa diedit.',

@@ -49,7 +49,7 @@ class ActivityService
         $causer = $log->causer?->name ?? 'System';
         $subject = class_basename((string) $log->subject_type);
         $content = implode("\n", array_filter([
-            '**InfraKelas Notification**',
+            '**SPH Notification**',
             'Action: '.$log->action,
             'Description: '.$log->description,
             'Causer: '.$causer,

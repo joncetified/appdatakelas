@@ -40,6 +40,12 @@ return [
         'secret_key' => env('RECAPTCHA_SECRET_KEY', env('GOOGLE_RECAPTCHA_SECRET_KEY')),
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URL', env('GOOGLE_REDIRECT_URI')),
+    ],
+
     'groq' => [
         'key' => env('GROQ_API_KEY'),
         'model' => env('GROQ_MODEL', 'openai/gpt-oss-20b'),

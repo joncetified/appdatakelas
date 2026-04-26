@@ -43,7 +43,7 @@
                     <label for="logo" class="label">Logo</label>
                     <input id="logo" name="logo" type="file" class="field mt-2">
                     <p class="mt-2 text-sm text-slate-500">
-                        Jika tidak upload logo baru, sistem memakai logo default Sekolah Permata Harapan.
+                        Jika tidak upload logo baru, sistem memakai logo default SPH.
                     </p>
                 </div>
             </div>

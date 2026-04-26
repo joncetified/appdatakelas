@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class SystemCoverageTest extends TestCase
@@ -76,7 +77,7 @@ class SystemCoverageTest extends TestCase
         $superAdmin = User::factory()->superAdmin()->create();
 
         $response = $this->actingAs($superAdmin)->put(route('admin.settings.update'), [
-            'company_name' => 'Sekolah Permata Harapan',
+            'company_name' => 'SPH',
             'address' => 'Jl. Contoh No. 1',
             'manager_name' => 'Rudi Hartono',
             'contact_email' => 'info@permataharapan.test',
@@ -90,7 +91,7 @@ class SystemCoverageTest extends TestCase
         $response->assertRedirect(route('admin.settings.edit'));
 
         $this->assertDatabaseHas('site_settings', [
-            'company_name' => 'Sekolah Permata Harapan',
+            'company_name' => 'SPH',
             'contact_email' => 'info@permataharapan.test',
             'google_recaptcha_site_key' => 'site-key',
         ]);
@@ -104,7 +105,7 @@ class SystemCoverageTest extends TestCase
         $this->assertTrue(File::exists($defaultLogoPath));
 
         $response = $this->actingAs($superAdmin)->put(route('admin.settings.update'), [
-            'company_name' => 'Sekolah Permata Harapan',
+            'company_name' => 'SPH',
             'logo' => UploadedFile::fake()->createWithContent('logo.svg', <<<'SVG'
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120">
     <rect width="320" height="120" fill="#ffffff"/>
@@ -320,7 +321,7 @@ SVG),
         $backupPayload = json_encode([
             'meta' => [
                 'generated_at' => now()->toIso8601String(),
-                'app' => 'InfraKelas',
+                'app' => 'SPH',
             ],
             'site_settings' => [],
             'permissions' => [],
@@ -488,5 +489,62 @@ SVG),
         $this->assertNull($restoredUser->deleted_at);
         $this->assertSame('Akun Dipulihkan', $restoredUser->name);
         $this->assertSame(User::ROLE_MANAGER, $restoredUser->role);
+    }
+
+    public function test_verified_user_can_send_chat_message(): void
+    {
+        $user = User::factory()->superAdmin()->create();
+
+        config()->set('services.groq.key', 'test-groq-key');
+        config()->set('services.groq.url', 'https://api.groq.com/openai/v1/responses');
+
+        Http::fake([
+            'https://api.groq.com/openai/v1/responses' => Http::response([
+                'id' => 'resp_test_123',
+                'output' => [[
+                    'type' => 'message',
+                    'content' => [[
+                        'type' => 'output_text',
+                        'text' => 'Halo dari AI.',
+                    ]],
+                ]],
+            ], 200),
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('chat.message'), [
+            'message' => '  Tolong bantu saya  ',
+            'current_route' => 'chat.index',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJson([
+                'answer' => 'Halo dari AI.',
+                'reply' => 'Halo dari AI.',
+                'response_id' => 'resp_test_123',
+            ]);
+
+        Http::assertSent(function ($request): bool {
+            return $request->hasHeader('Authorization', 'Bearer test-groq-key')
+                && $request['input'][0]['content'] === 'Tolong bantu saya'
+                && str_contains((string) $request['instructions'], 'Halaman chat AI');
+        });
+    }
+
+    public function test_chat_falls_back_to_local_answer_when_api_key_is_missing(): void
+    {
+        $user = User::factory()->superAdmin()->create();
+
+        config()->set('services.groq.key', null);
+
+        $response = $this->actingAs($user)->postJson(route('chat.message'), [
+            'message' => 'Halo AI',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('response_id', null);
+
+        $this->assertStringContainsString('Saya Asisten PH', (string) $response->json('reply'));
     }
 }

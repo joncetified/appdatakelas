@@ -27,9 +27,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Carbon::setLocale(config('app.locale'));
 
-        $defaultBrandName = 'Sekolah Permata Harapan';
+        $defaultBrandName = 'SPH';
         $defaultBrandLogoPath = 'site/permata-harapan-logo.svg';
-        $placeholderBrandNames = ['laravel', 'infrakelas', 'appdatakelas'];
+        $placeholderBrandNames = ['laravel', 'appdatakelas'];
 
         if (Schema::hasTable('permissions')) {
             Permission::syncDefaults();

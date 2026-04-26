@@ -48,6 +48,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $fillable = [
         'name',
         'email',
+        'google_id',
         'email_verified_at',
         'password',
         'role',
@@ -229,7 +230,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function hasVerifiedEmail(): bool
     {
-        return ! $this->requiresEmailVerification() || ! is_null($this->email_verified_at);
+        if (! $this->requiresEmailVerification()) {
+            return true;
+        }
+
+        return ! is_null($this->email_verified_at);
     }
 
     /**

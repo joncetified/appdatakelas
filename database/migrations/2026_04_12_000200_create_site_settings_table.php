@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('site_settings', function (Blueprint $table) {
             $table->id();
-            $table->string('company_name')->default('InfraKelas');
+            $table->string('company_name')->default('SPH');
             $table->string('logo_path')->nullable();
             $table->text('address')->nullable();
             $table->string('manager_name')->nullable();
@@ -30,7 +30,7 @@ return new class extends Migration
         });
 
         DB::table('site_settings')->insert([
-            'company_name' => config('app.name', 'InfraKelas'),
+            'company_name' => config('app.name', 'SPH'),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
