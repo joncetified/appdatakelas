@@ -21,7 +21,7 @@
             <p class="mt-3 text-sm leading-6 text-slate-600">
                 {{ $needsInitialSetup
                     ? 'Halaman login tetap tersedia, tetapi akun pertama harus dibuat lebih dulu lewat setup awal.'
-                    : 'Masukkan username berupa nama lengkap dan password. Setelah password valid, kode OTP akan dikirim ke email akun Anda.' }}
+                    : 'Masukkan username berupa nama lengkap dan password untuk langsung masuk. Jika lupa password, isi username lalu gunakan OTP email.' }}
             </p>
 
             @if ($needsInitialSetup)
@@ -92,8 +92,12 @@
 
                 @include('partials.captcha', ['captcha' => $captcha])
 
-                <button type="submit" class="btn-primary w-full justify-center">
+                <button type="submit" name="action" value="password" class="btn-primary w-full justify-center">
                     Masuk
+                </button>
+
+                <button type="submit" name="action" value="otp" formnovalidate class="btn-secondary w-full justify-center">
+                    Lupa password? Login dengan OTP
                 </button>
 
                 <div class="flex flex-wrap justify-between gap-3 text-sm text-slate-600">

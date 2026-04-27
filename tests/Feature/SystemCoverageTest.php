@@ -7,6 +7,7 @@ use App\Models\IncomeEntry;
 use App\Models\InfrastructureReport;
 use App\Models\SiteSetting;
 use App\Models\User;
+use App\Providers\AppServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
@@ -196,6 +197,32 @@ SVG),
         $this->assertSame('Akun Inti', $superAdmin->name);
     }
 
+    public function test_import_cannot_demote_last_super_admin_via_csv(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create([
+            'name' => 'Akun Inti',
+            'email' => 'superadmin@sekolah.test',
+        ]);
+
+        $csv = implode("\n", [
+            'name,email,role,whatsapp_number,permissions,deleted_at',
+            'Akun Turun,superadmin@sekolah.test,admin,081200000000,dashboard.view,',
+        ]);
+
+        $file = UploadedFile::fake()->createWithContent('users.csv', $csv);
+
+        $response = $this->actingAs($superAdmin)->post(route('admin.imports.users'), [
+            'users_file' => $file,
+        ]);
+
+        $response->assertRedirect();
+
+        $superAdmin->refresh();
+
+        $this->assertSame(User::ROLE_SUPER_ADMIN, $superAdmin->role);
+        $this->assertSame('Akun Inti', $superAdmin->name);
+    }
+
     public function test_admin_import_cannot_escalate_own_permissions(): void
     {
         $admin = User::factory()->admin()->create([
@@ -233,6 +260,26 @@ SVG),
         ]);
 
         $response->assertRedirect(route('admin.permissions.index'));
+
+        $this->actingAs($manager)
+            ->get(route('dashboard'))
+            ->assertForbidden();
+    }
+
+    public function test_empty_permission_checklist_stays_blocked_after_application_reboots(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $manager = User::factory()->manager()->create();
+
+        $this->actingAs($superAdmin)->put(route('admin.permissions.update', $manager), [
+            'permissions' => [],
+        ])->assertRedirect(route('admin.permissions.index'));
+
+        (new AppServiceProvider($this->app))->boot();
+
+        $manager = User::query()->where('email', $manager->email)->firstOrFail();
+
+        $this->assertSame(0, $manager->permissions()->count());
 
         $this->actingAs($manager)
             ->get(route('dashboard'))
@@ -433,6 +480,31 @@ SVG),
 
         $this->assertSame(User::ROLE_MANAGER, $leader->role);
         $this->assertNotNull($leader->email_verified_at);
+    }
+
+    public function test_admin_email_change_for_role_that_requires_verification_resets_status(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $leader = User::factory()->classLeader()->create([
+            'email' => 'ketua.lama@sekolah.test',
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($superAdmin)->from(route('admin.users.edit', $leader))->put(route('admin.users.update', $leader), [
+            'name' => $leader->name,
+            'email' => 'ketua.baru@sekolah.test',
+            'role' => User::ROLE_CLASS_LEADER,
+            'whatsapp_number' => $leader->whatsapp_number,
+            'password' => '',
+            'password_confirmation' => '',
+        ]);
+
+        $response->assertRedirect(route('admin.users.index'));
+
+        $leader->refresh();
+
+        $this->assertSame('ketua.baru@sekolah.test', $leader->email);
+        $this->assertNull($leader->email_verified_at);
     }
 
     public function test_updating_user_role_to_class_leader_resets_email_verification(): void

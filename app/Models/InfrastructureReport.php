@@ -16,11 +16,14 @@ class InfrastructureReport extends Model
 {
     /** @use HasFactory<InfrastructureReportFactory> */
     use HasAuditTrail;
+
     use HasFactory;
     use SoftDeletes;
 
     public const STATUS_SUBMITTED = 'submitted';
+
     public const STATUS_REVISION_REQUESTED = 'revision_requested';
+
     public const STATUS_VERIFIED = 'verified';
 
     /**

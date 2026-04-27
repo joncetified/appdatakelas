@@ -6,7 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class LoginOtpNotification extends Notification
+class PasswordResetOtpNotification extends Notification
 {
     use Queueable;
 
@@ -26,11 +26,11 @@ class LoginOtpNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Kode OTP Login')
-            ->greeting('Verifikasi Login')
-            ->line('Gunakan kode OTP berikut untuk menyelesaikan login.')
+            ->subject('Kode OTP Reset Password')
+            ->greeting('Reset Password')
+            ->line('Gunakan kode OTP berikut untuk melanjutkan reset password akun Anda.')
             ->line("Kode OTP: {$this->code}")
             ->line("Kode ini berlaku selama {$this->validMinutes} menit.")
-            ->line('Abaikan email ini jika Anda tidak mencoba login.');
+            ->line('Abaikan email ini jika Anda tidak meminta reset password.');
     }
 }

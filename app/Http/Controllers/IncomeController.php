@@ -12,8 +12,7 @@ class IncomeController extends Controller
 {
     public function __construct(
         private readonly ActivityService $activityService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): View
     {

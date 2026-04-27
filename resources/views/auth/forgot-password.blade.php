@@ -5,10 +5,10 @@
         <section class="panel px-8 py-8">
             <p class="text-xs font-semibold uppercase tracking-[0.38em] text-amber-600">Reset Password</p>
             <h2 class="mt-4 max-w-xl text-4xl font-semibold leading-tight text-slate-950">
-                Pilih reset lewat email atau ajukan bantuan lewat WhatsApp.
+                Masukkan username untuk menerima kode OTP reset password.
             </h2>
             <p class="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-                Email akan mengirim link reset otomatis. Jalur WhatsApp akan membuka chat ke nomor support website.
+                Sistem akan mencari akun dari username atau email, lalu mengirim kode OTP ke email yang terdaftar. Jalur WhatsApp tetap tersedia jika perlu bantuan admin.
             </p>
             @if ($supportWhatsapp)
                 <p class="mt-4 text-sm text-slate-600">WhatsApp support: <span class="font-semibold text-slate-950">{{ $supportWhatsapp }}</span></p>
@@ -23,14 +23,14 @@
                 @csrf
 
                 <div>
-                    <label for="email" class="label">Email</label>
-                    <input id="email" name="email" type="email" value="{{ old('email') }}" class="field mt-2" required autofocus>
+                    <label for="login" class="label">Username atau Email</label>
+                    <input id="login" name="login" type="text" value="{{ old('login', old('email')) }}" autocomplete="username" class="field mt-2" required autofocus>
                 </div>
 
                 <div>
                     <label for="channel" class="label">Metode Reset</label>
                     <select id="channel" name="channel" class="field mt-2" required>
-                        <option value="email" @selected(old('channel') === 'email')>Email</option>
+                        <option value="email" @selected(old('channel', 'email') === 'email')>Email OTP</option>
                         <option value="whatsapp" @selected(old('channel') === 'whatsapp')>WhatsApp</option>
                     </select>
                 </div>

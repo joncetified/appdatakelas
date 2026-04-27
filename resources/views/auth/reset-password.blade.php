@@ -6,6 +6,23 @@
             <p class="text-xs font-semibold uppercase tracking-[0.34em] text-slate-500">Password Baru</p>
             <h2 class="mt-3 text-3xl font-semibold text-slate-950">Reset Password</h2>
 
+            @if (session('success'))
+                <div class="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-700 shadow-sm">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if ($errors->any())
+                <div class="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700 shadow-sm">
+                    <p class="font-semibold">Masih ada input yang perlu diperbaiki.</p>
+                    <ul class="mt-2 space-y-1">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('password.store') }}" class="mt-8 space-y-5">
                 @csrf
                 <input type="hidden" name="token" value="{{ $request->route('token') }}">

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class InfrastructureReportFactory extends Factory
 {
     protected $model = InfrastructureReport::class;
+
     protected static int $reportSequence = 0;
 
     /**

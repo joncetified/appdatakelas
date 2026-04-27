@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class IncomeEntry extends Model
 {
-    use HasFactory;
     use HasAuditTrail;
+    use HasFactory;
     use SoftDeletes;
 
     /**

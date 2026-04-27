@@ -16,8 +16,7 @@ class RegisteredUserController extends Controller
 {
     public function __construct(
         private readonly CaptchaService $captchaService,
-    ) {
-    }
+    ) {}
 
     public function create(Request $request): View
     {

@@ -128,7 +128,7 @@ return [
     | Initial Setup Security
     |--------------------------------------------------------------------------
     |
-    | If set to true, the application will allow the initial super admin 
+    | If set to true, the application will allow the initial super admin
     | setup page (/setup/admin) to be accessed when no users exist.
     | Set to false after the first setup to improve security.
     |

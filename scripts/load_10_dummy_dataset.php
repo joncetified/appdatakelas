@@ -75,7 +75,7 @@ DB::transaction(function (): void {
     ])->saveQuietly();
     $superAdmin = $superAdmin->fresh();
 
-    $siteSetting = SiteSetting::query()->first() ?? new SiteSetting();
+    $siteSetting = SiteSetting::query()->first() ?? new SiteSetting;
     $siteSetting->forceFill([
         'company_name' => 'SPH',
         'logo_path' => 'site/permata-harapan-logo.svg',

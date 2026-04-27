@@ -4,11 +4,10 @@ namespace App\Providers;
 
 use App\Models\Permission;
 use App\Models\SiteSetting;
-use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -60,18 +59,5 @@ class AppServiceProvider extends ServiceProvider
             View::share('brandLogoPath', $defaultBrandLogoPath);
         }
 
-        if (
-            Schema::hasTable('permissions')
-            && Schema::hasTable('user_permissions')
-            && Schema::hasTable('users')
-            && Schema::hasColumn('users', 'role')
-            && Schema::hasColumn('users', 'deleted_at')
-        ) {
-            User::query()->withCount('permissions')->get()->each(function (User $user): void {
-                if ($user->permissions_count === 0) {
-                    $user->syncPermissionsBySlugs(User::defaultPermissionSlugsForRole($user->role));
-                }
-            });
-        }
     }
 }

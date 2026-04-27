@@ -182,6 +182,12 @@ class SystemToolController extends Controller
                 continue;
             }
 
+            if ($this->wouldRemoveLastSuperAdmin($user, $role)) {
+                $skipped++;
+
+                continue;
+            }
+
             $emailVerifiedAt = $user->email_verified_at;
 
             if (! User::roleRequiresEmailVerification($role) && ! $emailVerifiedAt) {
@@ -303,6 +309,18 @@ class SystemToolController extends Controller
     private function escapeCsv(string $value): string
     {
         return '"'.str_replace('"', '""', $value).'"';
+    }
+
+    private function wouldRemoveLastSuperAdmin(User $user, string $targetRole): bool
+    {
+        if (! $user->exists || ! $user->isSuperAdmin() || $targetRole === User::ROLE_SUPER_ADMIN) {
+            return false;
+        }
+
+        return ! User::query()
+            ->where('role', User::ROLE_SUPER_ADMIN)
+            ->whereKeyNot($user->getKey())
+            ->exists();
     }
 
     /**

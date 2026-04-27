@@ -15,6 +15,7 @@ class Classroom extends Model
 {
     /** @use HasFactory<ClassroomFactory> */
     use HasAuditTrail;
+
     use HasFactory;
     use SoftDeletes;
 

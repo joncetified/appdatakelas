@@ -15,8 +15,7 @@ class TrashController extends Controller
 {
     public function __construct(
         private readonly ActivityService $activityService,
-    ) {
-    }
+    ) {}
 
     public function index(): View
     {

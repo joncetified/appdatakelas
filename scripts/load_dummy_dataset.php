@@ -6,7 +6,6 @@ use App\Models\ActivityLog;
 use App\Models\Classroom;
 use App\Models\IncomeEntry;
 use App\Models\InfrastructureReport;
-use App\Models\InfrastructureReportItem;
 use App\Models\Permission;
 use App\Models\SiteSetting;
 use App\Models\User;
@@ -67,6 +66,7 @@ DB::transaction(function (): void {
 
         $user->syncPermissionsBySlugs(User::defaultPermissionSlugsForRole($user->role));
         $touchAudit($user);
+
         return $user->fresh();
     };
 

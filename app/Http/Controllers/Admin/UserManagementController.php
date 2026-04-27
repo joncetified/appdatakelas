@@ -107,8 +107,9 @@ class UserManagementController extends Controller
         }
 
         $roleChanged = $targetRole !== $user->role;
+        $emailChanged = ($validated['email'] ?? $user->email) !== $user->email;
 
-        if ($roleChanged) {
+        if ($roleChanged || $emailChanged) {
             $validated['email_verified_at'] = User::roleRequiresEmailVerification($targetRole)
                 ? null
                 : ($user->email_verified_at ?? now());

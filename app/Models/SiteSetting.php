@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SiteSetting extends Model
 {
-    use HasFactory;
     use HasAuditTrail;
+    use HasFactory;
 
     /**
      * @var list<string>

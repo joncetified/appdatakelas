@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Notifications\LoginOtpNotification;
+use App\Notifications\PasswordResetOtpNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
@@ -15,7 +17,53 @@ class LoginOtpTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_login_requires_valid_password_then_valid_otp(): void
+    public function test_login_with_valid_password_goes_directly_to_dashboard(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->admin()->create([
+            'name' => 'Admin Sekolah',
+            'email' => 'admin@sekolah.test',
+            'password' => 'password',
+        ]);
+
+        $response = $this->from(route('login'))->post(route('login.store'), [
+            'login' => 'Admin Sekolah',
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($user);
+        Notification::assertNothingSent();
+    }
+
+    public function test_wrong_otp_does_not_login_user(): void
+    {
+        Notification::fake();
+
+        User::factory()->admin()->create([
+            'name' => 'Admin Sekolah',
+            'email' => 'admin@sekolah.test',
+            'password' => 'password',
+        ]);
+
+        $this->post(route('login.store'), [
+            'login' => 'Admin Sekolah',
+            'action' => 'otp',
+        ])->assertRedirect(route('login.otp'));
+
+        $response = $this->from(route('login.otp'))->post(route('login.otp.verify'), [
+            'otp' => '000000',
+        ]);
+
+        $response
+            ->assertRedirect(route('login.otp'))
+            ->assertSessionHasErrors('otp');
+
+        $this->assertGuest();
+    }
+
+    public function test_user_can_request_login_otp_by_username_without_password(): void
     {
         Notification::fake();
 
@@ -27,7 +75,7 @@ class LoginOtpTest extends TestCase
 
         $response = $this->post(route('login.store'), [
             'login' => 'Admin Sekolah',
-            'password' => 'password',
+            'action' => 'otp',
         ]);
 
         $response->assertRedirect(route('login.otp'));
@@ -53,30 +101,54 @@ class LoginOtpTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_wrong_otp_does_not_login_user(): void
+    public function test_forgot_password_sends_otp_by_username_then_resets_password(): void
     {
         Notification::fake();
 
-        User::factory()->admin()->create([
-            'name' => 'Admin Sekolah',
-            'email' => 'admin@sekolah.test',
-            'password' => 'password',
+        $user = User::factory()->classLeader()->create([
+            'name' => 'Ketua Kelas',
+            'email' => 'ketua@sekolah.test',
+            'password' => 'password-lama',
         ]);
 
-        $this->post(route('login.store'), [
-            'login' => 'Admin Sekolah',
-            'password' => 'password',
-        ])->assertRedirect(route('login.otp'));
-
-        $response = $this->from(route('login.otp'))->post(route('login.otp.verify'), [
-            'otp' => '000000',
+        $response = $this->post(route('password.email'), [
+            'login' => 'Ketua Kelas',
+            'channel' => 'email',
         ]);
 
-        $response
-            ->assertRedirect(route('login.otp'))
-            ->assertSessionHasErrors('otp');
+        $response->assertRedirect(route('password.otp'));
 
-        $this->assertGuest();
+        $otp = null;
+
+        Notification::assertSentTo(
+            $user,
+            PasswordResetOtpNotification::class,
+            function (PasswordResetOtpNotification $notification) use (&$otp): bool {
+                $otp = $notification->code;
+
+                return preg_match('/^\d{6}$/', $otp) === 1;
+            }
+        );
+
+        $otpResponse = $this->post(route('password.otp.verify'), [
+            'otp' => $otp,
+        ]);
+
+        $otpResponse->assertRedirect();
+
+        $location = (string) $otpResponse->headers->get('Location');
+        $path = (string) parse_url($location, PHP_URL_PATH);
+        $token = basename($path);
+
+        $resetResponse = $this->post(route('password.store'), [
+            'token' => $token,
+            'email' => 'ketua@sekolah.test',
+            'password' => 'PasswordBaru123!',
+            'password_confirmation' => 'PasswordBaru123!',
+        ]);
+
+        $resetResponse->assertRedirect(route('login'));
+        $this->assertTrue(Hash::check('PasswordBaru123!', $user->refresh()->password));
     }
 
     public function test_google_callback_links_google_id_and_logs_in_existing_user(): void

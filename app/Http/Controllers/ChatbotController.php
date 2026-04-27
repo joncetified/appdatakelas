@@ -12,8 +12,7 @@ class ChatbotController extends Controller
 {
     public function __construct(
         private readonly GroqSupportChatService $supportChat,
-    ) {
-    }
+    ) {}
 
     public function index(): View
     {

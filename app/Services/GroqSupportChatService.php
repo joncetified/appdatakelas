@@ -5,9 +5,9 @@ namespace App\Services;
 use App\Models\InfrastructureReport;
 use App\Models\SiteSetting;
 use App\Models\User;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Illuminate\Http\Client\RequestException;
 use Throwable;
 
 class GroqSupportChatService
@@ -163,7 +163,7 @@ class GroqSupportChatService
 
         if ($this->matches($normalized, ['cara login', 'login'])) {
             return $this->response(
-                answer: 'Untuk login, buka halaman Login lalu masukkan username berupa nama lengkap dan password akun Anda. Setelah itu masukkan kode OTP yang dikirim ke email. Jika lupa password, gunakan menu Lupa Password atau hubungi admin sekolah.',
+                answer: 'Untuk login, buka halaman Login lalu masukkan username berupa nama lengkap dan password akun Anda. Jika lupa password, isi username lalu tekan Login dengan OTP. Kode akan dikirim ke email akun dan setelah OTP benar Anda bisa masuk.',
                 suggestions: ['Lupa password', 'Kontak admin', 'Menu saya'],
                 actions: $this->menuItemsFor(null),
             );
@@ -171,7 +171,7 @@ class GroqSupportChatService
 
         if ($this->matches($normalized, ['lupa password', 'reset password', 'password'])) {
             return $this->response(
-                answer: 'Jika lupa password, buka halaman Lupa Password lalu kirim permintaan reset. Jika jalur reset tidak tersedia, hubungi admin melalui email atau WhatsApp sekolah.',
+                answer: 'Jika lupa password, buka halaman Lupa Password, masukkan username atau email, lalu cek kode OTP yang dikirim ke email akun. Setelah OTP benar, Anda bisa membuat password baru. Jika email tidak bisa diakses, hubungi admin melalui email atau WhatsApp sekolah.',
                 suggestions: ['Cara login', 'Kontak admin'],
                 actions: array_slice(array_merge([$this->action('Lupa Password', route('password.request'))], $this->contactActions($settings, $user)), 0, 4),
             );

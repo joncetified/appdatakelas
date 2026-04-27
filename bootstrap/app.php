@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserHasPermission;
+use App\Http\Middleware\EnsureUserHasRole;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -26,7 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo('/login');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (\Throwable $exception, Request $request) {
+        $exceptions->render(function (Throwable $exception, Request $request) {
             if (
                 $request->expectsJson()
                 || $exception instanceof AuthenticationException

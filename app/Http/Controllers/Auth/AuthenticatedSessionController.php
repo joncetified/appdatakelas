@@ -25,8 +25,7 @@ class AuthenticatedSessionController extends Controller
 
     public function __construct(
         private readonly CaptchaService $captchaService,
-    ) {
-    }
+    ) {}
 
     public function create(Request $request): View|RedirectResponse
     {
@@ -58,12 +57,35 @@ class AuthenticatedSessionController extends Controller
             'login' => $request->input('login', $request->input('email')),
         ]);
 
-        $credentials = $request->validate([
+        $wantsOtpLogin = $request->input('action') === 'otp';
+        $rules = [
             'login' => ['required', 'string'],
-            'password' => ['required', 'string'],
-        ]);
+        ];
+
+        if (! $wantsOtpLogin) {
+            $rules['password'] = ['required', 'string'];
+        }
+
+        $credentials = $request->validate($rules);
 
         $login = trim((string) $credentials['login']);
+
+        if ($wantsOtpLogin) {
+            $user = $this->findUserForOtpLogin($login);
+
+            if (! $user) {
+                throw ValidationException::withMessages([
+                    'login' => 'Username atau email tidak ditemukan.',
+                ]);
+            }
+
+            $this->issueLoginOtp($request, $user, $request->boolean('remember'));
+
+            return redirect()
+                ->route('login.otp')
+                ->with('success', 'Kode OTP login sudah dikirim ke email akun Anda.');
+        }
+
         $user = User::query()
             ->where('name', $login)
             ->orWhere('email', $login)
@@ -76,11 +98,14 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        $this->issueLoginOtp($request, $user, $request->boolean('remember'));
+        Auth::login($user, $request->boolean('remember'));
+        $request->session()->regenerate();
 
-        return redirect()
-            ->route('login.otp')
-            ->with('success', 'Password valid. Kode OTP sudah dikirim ke email akun Anda.');
+        if (! $request->user()?->hasVerifiedEmail()) {
+            return redirect()->route('verification.notice')->with('success', 'Login berhasil, tetapi akun belum aktif. Verifikasi email terlebih dahulu.');
+        }
+
+        return redirect()->intended(route('dashboard'));
     }
 
     public function createOtp(Request $request): View|RedirectResponse
@@ -293,6 +318,27 @@ class AuthenticatedSessionController extends Controller
         ]);
 
         $user->notify(new LoginOtpNotification($code, self::OTP_VALID_MINUTES));
+    }
+
+    private function findUserForOtpLogin(string $login): ?User
+    {
+        $login = trim($login);
+
+        $user = User::query()->where('email', $login)->first();
+
+        if ($user) {
+            return $user;
+        }
+
+        $matches = User::query()->where('name', $login)->get();
+
+        if ($matches->count() > 1) {
+            throw ValidationException::withMessages([
+                'login' => 'Username ini terdaftar pada lebih dari satu akun. Masukkan email akun atau hubungi admin.',
+            ]);
+        }
+
+        return $matches->first();
     }
 
     /**
