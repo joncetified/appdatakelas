@@ -128,4 +128,21 @@
         background-color: rgb(148 163 184 / 0.55);
         background-clip: padding-box;
     }
+
+    .ui-expanded [data-app-frame] {
+        max-width: min(100%, 128rem);
+    }
+
+    .ui-expanded main {
+        font-size: 1.03rem;
+    }
+
+    .ui-expanded .panel,
+    .ui-expanded .metric-card {
+        box-shadow: 0 14px 44px rgb(15 23 42 / 0.08);
+    }
+
+    .ui-expanded .field {
+        padding-block: 1rem;
+    }
 }

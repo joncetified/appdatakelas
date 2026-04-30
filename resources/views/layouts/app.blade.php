@@ -33,7 +33,7 @@
     </div>
 
     @if ($user)
-        <div class="relative mx-auto flex min-h-screen max-w-[90rem] flex-col gap-5 px-4 py-5 lg:flex-row lg:px-8 lg:py-6">
+        <div class="relative mx-auto flex min-h-screen max-w-[112rem] flex-col gap-5 px-4 py-5 lg:flex-row lg:px-8 lg:py-6" data-app-frame>
             <aside class="panel flex w-full shrink-0 flex-col overflow-hidden lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:w-[20.5rem]">
                 <div class="border-b border-slate-200/60 p-6">
                     <div class="rounded-[28px] border border-white/80 bg-gradient-to-br from-white via-amber-50/60 to-slate-50 px-5 py-5 shadow-sm shadow-amber-100/40">
@@ -179,15 +179,15 @@
                             <button
                                 type="button"
                                 class="icon-btn"
-                                data-fullscreen-toggle
-                                title="Fullscreen"
-                                aria-label="Aktifkan fullscreen"
+                                data-ui-scale-toggle
+                                title="Perbesar UI"
+                                aria-label="Perbesar tampilan web app"
                                 aria-pressed="false"
                             >
-                                <svg data-fullscreen-enter xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                <svg data-ui-scale-expand xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9V5.25A1.5 1.5 0 0 1 5.25 3.75H9M15 3.75h3.75a1.5 1.5 0 0 1 1.5 1.5V9M20.25 15v3.75a1.5 1.5 0 0 1-1.5 1.5H15M9 20.25H5.25a1.5 1.5 0 0 1-1.5-1.5V15" />
                                 </svg>
-                                <svg data-fullscreen-exit xmlns="http://www.w3.org/2000/svg" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                <svg data-ui-scale-shrink xmlns="http://www.w3.org/2000/svg" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 3.75V7.5A1.5 1.5 0 0 1 7.5 9H3.75M20.25 9H16.5A1.5 1.5 0 0 1 15 7.5V3.75M15 20.25V16.5a1.5 1.5 0 0 1 1.5-1.5h3.75M3.75 15H7.5A1.5 1.5 0 0 1 9 16.5v3.75" />
                                 </svg>
                             </button>

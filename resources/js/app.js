@@ -244,48 +244,45 @@ const initializeCharts = () => {
     });
 };
 
-const initializeFullscreenToggle = () => {
-    const button = document.querySelector('[data-fullscreen-toggle]');
+const initializeUiScaleToggle = () => {
+    const button = document.querySelector('[data-ui-scale-toggle]');
 
-    if (!button || !document.fullscreenEnabled) {
-        button?.classList.add('hidden');
+    if (!button) {
         return;
     }
 
-    const enterIcon = button.querySelector('[data-fullscreen-enter]');
-    const exitIcon = button.querySelector('[data-fullscreen-exit]');
+    const storageKey = 'appdatakelas.uiExpanded';
+    const expandIcon = button.querySelector('[data-ui-scale-expand]');
+    const shrinkIcon = button.querySelector('[data-ui-scale-shrink]');
+
+    const isExpanded = () => document.body.classList.contains('ui-expanded');
 
     const syncState = () => {
-        const isFullscreen = Boolean(document.fullscreenElement);
+        const expanded = isExpanded();
 
-        button.setAttribute('aria-pressed', String(isFullscreen));
-        button.setAttribute('aria-label', isFullscreen ? 'Keluar fullscreen' : 'Aktifkan fullscreen');
-        button.setAttribute('title', isFullscreen ? 'Keluar fullscreen' : 'Fullscreen');
-        enterIcon?.classList.toggle('hidden', isFullscreen);
-        exitIcon?.classList.toggle('hidden', !isFullscreen);
+        button.setAttribute('aria-pressed', String(expanded));
+        button.setAttribute('aria-label', expanded ? 'Kecilkan tampilan web app' : 'Perbesar tampilan web app');
+        button.setAttribute('title', expanded ? 'Kecilkan UI' : 'Perbesar UI');
+        expandIcon?.classList.toggle('hidden', expanded);
+        shrinkIcon?.classList.toggle('hidden', !expanded);
     };
 
-    button.addEventListener('click', async () => {
-        try {
-            if (document.fullscreenElement) {
-                await document.exitFullscreen();
-                return;
-            }
+    document.body.classList.toggle('ui-expanded', window.localStorage.getItem(storageKey) === '1');
 
-            await document.documentElement.requestFullscreen();
-        } catch (error) {
-            button.classList.add('ring-4', 'ring-rose-200');
-            window.setTimeout(() => button.classList.remove('ring-4', 'ring-rose-200'), 1200);
-        }
+    button.addEventListener('click', () => {
+        const expanded = !isExpanded();
+
+        document.body.classList.toggle('ui-expanded', expanded);
+        window.localStorage.setItem(storageKey, expanded ? '1' : '0');
+        syncState();
     });
 
-    document.addEventListener('fullscreenchange', syncState);
     syncState();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeReportRepeater();
     initializeCharts();
-    initializeFullscreenToggle();
+    initializeUiScaleToggle();
     initializeSupportChatbot();
 });

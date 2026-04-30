@@ -107,15 +107,15 @@ class SystemCoverageTest extends TestCase
             ->assertSee('Stok kritis');
     }
 
-    public function test_workspace_header_has_fullscreen_toggle(): void
+    public function test_workspace_header_has_ui_scale_toggle(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();
 
         $this->actingAs($superAdmin)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('data-fullscreen-toggle', false)
-            ->assertSee('Aktifkan fullscreen');
+            ->assertSee('data-ui-scale-toggle', false)
+            ->assertSee('Perbesar tampilan web app');
     }
 
     public function test_successful_login_writes_activity_log(): void
