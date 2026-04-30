@@ -176,6 +176,21 @@
                         </div>
                         <div class="flex flex-wrap gap-3">
                             <span class="status-chip bg-white/90">{{ now()->translatedFormat('l, d F Y') }}</span>
+                            <button
+                                type="button"
+                                class="icon-btn"
+                                data-fullscreen-toggle
+                                title="Fullscreen"
+                                aria-label="Aktifkan fullscreen"
+                                aria-pressed="false"
+                            >
+                                <svg data-fullscreen-enter xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9V5.25A1.5 1.5 0 0 1 5.25 3.75H9M15 3.75h3.75a1.5 1.5 0 0 1 1.5 1.5V9M20.25 15v3.75a1.5 1.5 0 0 1-1.5 1.5H15M9 20.25H5.25a1.5 1.5 0 0 1-1.5-1.5V15" />
+                                </svg>
+                                <svg data-fullscreen-exit xmlns="http://www.w3.org/2000/svg" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 3.75V7.5A1.5 1.5 0 0 1 7.5 9H3.75M20.25 9H16.5A1.5 1.5 0 0 1 15 7.5V3.75M15 20.25V16.5a1.5 1.5 0 0 1 1.5-1.5h3.75M3.75 15H7.5A1.5 1.5 0 0 1 9 16.5v3.75" />
+                                </svg>
+                            </button>
                             @if ($user->hasPermission('reports.view'))
                                 <a href="{{ route('reports.index') }}" class="btn-secondary">Buka Laporan</a>
                             @endif

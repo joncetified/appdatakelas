@@ -118,6 +118,8 @@
             </article>
         </section>
 
+        @include('partials.critical-stock', ['criticalItems' => $criticalItems])
+
         @if ($reportChart || $incomeChart || $incomeCards)
             <section class="panel px-6 py-6 lg:px-8">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -220,7 +222,7 @@
 
             <div class="mt-6 grid gap-4 lg:grid-cols-2">
                 @forelse ($recentReports as $report)
-                    <article class="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-5">
+                    <article class="{{ $report->critical_stock_count > 0 ? 'critical-stock-card' : 'border-slate-200 bg-slate-50' }} rounded-3xl border px-5 py-5">
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <p class="text-lg font-semibold text-slate-950">{{ $report->classroom->name }}</p>
@@ -236,6 +238,9 @@
                             <p>Total unit: {{ $report->total_units }}</p>
                             <p>Unit rusak: {{ $report->damaged_units }}</p>
                         </div>
+                        @if ($report->critical_stock_count > 0)
+                            <p class="mt-4 stock-badge stock-badge-critical">{{ $report->critical_stock_count }} item stok kritis</p>
+                        @endif
                         <a href="{{ route('reports.show', $report) }}" class="mt-5 inline-flex text-sm font-semibold text-slate-950 underline decoration-amber-300 underline-offset-4">
                             Buka detail laporan
                         </a>
@@ -247,6 +252,8 @@
                 @endforelse
             </div>
         </section>
+
+        @include('partials.recent-activity', ['recentActivityLogs' => $recentActivityLogs])
     @elseif ($mode === User::ROLE_CLASS_LEADER)
         <section class="panel px-6 py-6 lg:px-8">
             <p class="text-xs font-semibold uppercase tracking-[0.34em] text-slate-500">Dashboard Ketua Kelas</p>
@@ -291,6 +298,9 @@
                                 <p>{{ $classroom->latestReport->items->count() }} item</p>
                                 <p>{{ $classroom->latestReport->damaged_units }} unit rusak</p>
                             </div>
+                            @if ($classroom->latestReport->critical_stock_count > 0)
+                                <p class="stock-badge stock-badge-critical">{{ $classroom->latestReport->critical_stock_count }} item stok kritis</p>
+                            @endif
                             <a href="{{ route('reports.show', $classroom->latestReport) }}" class="inline-flex text-sm font-semibold text-slate-950 underline decoration-amber-300 underline-offset-4">
                                 Lihat detail
                             </a>
@@ -303,6 +313,8 @@
                 </article>
             </section>
 
+            @include('partials.critical-stock', ['criticalItems' => $criticalItems])
+
             <section class="panel px-6 py-6 lg:px-8">
                 <div class="flex items-center justify-between">
                     <div>
@@ -314,7 +326,7 @@
 
                 <div class="mt-6 grid gap-4">
                     @forelse ($recentReports as $report)
-                        <article class="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-5">
+                        <article class="{{ $report->critical_stock_count > 0 ? 'critical-stock-card' : 'border-slate-200 bg-slate-50' }} rounded-3xl border px-5 py-5">
                             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                                 <div>
                                     <p class="text-lg font-semibold text-slate-950">{{ $report->report_date->translatedFormat('d F Y') }}</p>
@@ -329,6 +341,9 @@
                                 <p>{{ $report->total_units }} total unit</p>
                                 <p>{{ $report->damaged_units }} unit rusak</p>
                             </div>
+                            @if ($report->critical_stock_count > 0)
+                                <p class="mt-4 stock-badge stock-badge-critical">{{ $report->critical_stock_count }} item stok kritis</p>
+                            @endif
                             <div class="mt-5 flex flex-wrap gap-3">
                                 <a href="{{ route('reports.show', $report) }}" class="btn-secondary">Detail</a>
                                 @if ($report->isEditable())
@@ -384,6 +399,8 @@
             @endforelse
         </section>
 
+        @include('partials.critical-stock', ['criticalItems' => $criticalItems])
+
         <section class="panel px-6 py-6 lg:px-8">
             <div class="flex items-center justify-between">
                 <div>
@@ -395,7 +412,7 @@
 
             <div class="mt-6 grid gap-4">
                 @forelse ($pendingReports as $report)
-                    <article class="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-5">
+                    <article class="{{ $report->critical_stock_count > 0 ? 'critical-stock-card' : 'border-slate-200 bg-slate-50' }} rounded-3xl border px-5 py-5">
                         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                             <div>
                                 <p class="text-lg font-semibold text-slate-950">{{ $report->classroom->name }}</p>
@@ -411,6 +428,9 @@
                             <p>{{ $report->teacher_count }} guru</p>
                             <p>{{ $report->items->count() }} item</p>
                         </div>
+                        @if ($report->critical_stock_count > 0)
+                            <p class="mt-4 stock-badge stock-badge-critical">{{ $report->critical_stock_count }} item stok kritis</p>
+                        @endif
                         <a href="{{ route('reports.show', $report) }}" class="mt-5 inline-flex text-sm font-semibold text-slate-950 underline decoration-amber-300 underline-offset-4">
                             Tinjau laporan
                         </a>

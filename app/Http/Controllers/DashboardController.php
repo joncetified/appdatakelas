@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Classroom;
 use App\Models\IncomeEntry;
 use App\Models\InfrastructureReport;
+use App\Models\InfrastructureReportItem;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -42,6 +45,12 @@ class DashboardController extends Controller
                     ->latest('created_at')
                     ->take(6)
                     ->get(),
+                'criticalItems' => $this->criticalStockItems($user),
+                'recentActivityLogs' => ActivityLog::query()
+                    ->with('causer')
+                    ->latest()
+                    ->take(6)
+                    ->get(),
                 'reportChart' => $user->hasPermission('analytics.view')
                     ? $this->reportChartData($period, $chartType)
                     : null,
@@ -65,6 +74,7 @@ class DashboardController extends Controller
                 'recentReports' => $classroom
                     ? $classroom->reports()->with(['items', 'verifier'])->latest('report_date')->take(5)->get()
                     : collect(),
+                'criticalItems' => $this->criticalStockItems($user),
             ]);
         }
 
@@ -79,6 +89,7 @@ class DashboardController extends Controller
         return view('dashboard', [
             'mode' => User::ROLE_HOMEROOM_TEACHER,
             'classrooms' => $classrooms,
+            'criticalItems' => $this->criticalStockItems($user),
             'pendingReports' => InfrastructureReport::query()
                 ->visibleTo($user)
                 ->with(['classroom', 'reporter', 'items'])
@@ -87,6 +98,23 @@ class DashboardController extends Controller
                 ->take(6)
                 ->get(),
         ]);
+    }
+
+    /**
+     * @return Collection<int, InfrastructureReportItem>
+     */
+    private function criticalStockItems(User $user): Collection
+    {
+        return InfrastructureReportItem::query()
+            ->with(['report.classroom', 'report.reporter'])
+            ->where('damaged_units', '>', 0)
+            ->whereHas('report', fn ($query) => $query->visibleTo($user))
+            ->latest('updated_at')
+            ->latest('created_at')
+            ->get()
+            ->filter(fn (InfrastructureReportItem $item): bool => $item->is_critical_stock)
+            ->take(8)
+            ->values();
     }
 
     private function normalizePeriod(string $period): string

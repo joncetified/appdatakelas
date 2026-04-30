@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Notifications\LoginOtpNotification;
+use App\Services\ActivityService;
 use App\Services\CaptchaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class AuthenticatedSessionController extends Controller
 
     public function __construct(
         private readonly CaptchaService $captchaService,
+        private readonly ActivityService $activityService,
     ) {}
 
     public function create(Request $request): View|RedirectResponse
@@ -100,6 +102,7 @@ class AuthenticatedSessionController extends Controller
 
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
+        $this->logLogin($request, $user, 'password');
 
         if (! $request->user()?->hasVerifiedEmail()) {
             return redirect()->route('verification.notice')->with('success', 'Login berhasil, tetapi akun belum aktif. Verifikasi email terlebih dahulu.');
@@ -203,6 +206,7 @@ class AuthenticatedSessionController extends Controller
 
         Auth::login($user, true);
         $request->session()->regenerate();
+        $this->logLogin($request, $user, 'google');
 
         if (! $request->user()?->hasVerifiedEmail()) {
             return redirect()->route('verification.notice')->with('success', 'Login Google berhasil, tetapi akun belum aktif. Verifikasi email terlebih dahulu.');
@@ -258,6 +262,7 @@ class AuthenticatedSessionController extends Controller
 
         Auth::login($user, $remember);
         $request->session()->regenerate();
+        $this->logLogin($request, $user, 'otp');
 
         if (! $request->user()?->hasVerifiedEmail()) {
             return redirect()->route('verification.notice')->with('success', 'Akun terdaftar, tetapi belum aktif. Verifikasi email terlebih dahulu.');
@@ -295,6 +300,17 @@ class AuthenticatedSessionController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
+        if ($user) {
+            $this->activityService->log(
+                action: 'auth.logout',
+                description: "{$user->name} logout dari sistem.",
+                subject: $user,
+                properties: $this->requestContext($request),
+            );
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
@@ -373,6 +389,30 @@ class AuthenticatedSessionController extends Controller
     private function clearPendingOtp(Request $request): void
     {
         $request->session()->forget('login_otp');
+    }
+
+    private function logLogin(Request $request, User $user, string $method): void
+    {
+        $this->activityService->log(
+            action: 'auth.login',
+            description: "{$user->name} login menggunakan {$method}.",
+            subject: $user,
+            properties: [
+                'method' => $method,
+                ...$this->requestContext($request),
+            ],
+        );
+    }
+
+    /**
+     * @return array{ip: ?string, user_agent: ?string}
+     */
+    private function requestContext(Request $request): array
+    {
+        return [
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ];
     }
 
     private function googleLoginConfigured(): bool

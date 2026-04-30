@@ -149,6 +149,12 @@ class InfrastructureReportController extends Controller
                 action: 'report.created',
                 description: "Laporan #{$report->id} ditambahkan untuk {$classroom->name}.",
                 subject: $report,
+                properties: [
+                    'classroom' => $classroom->name,
+                    'report_date' => $report->report_date->toDateString(),
+                    'items_count' => count($items),
+                    'critical_items' => $this->criticalItemNames($items),
+                ],
             );
         });
 
@@ -231,6 +237,12 @@ class InfrastructureReportController extends Controller
                 action: 'report.updated',
                 description: "Laporan #{$report->id} diperbarui.",
                 subject: $report,
+                properties: [
+                    'classroom' => $classroom->name,
+                    'report_date' => $report->report_date->toDateString(),
+                    'items_count' => count($items),
+                    'critical_items' => $this->criticalItemNames($items),
+                ],
             );
         });
 
@@ -368,6 +380,29 @@ class InfrastructureReportController extends Controller
     private function canExportReports(User $user): bool
     {
         return $user->isSuperAdmin() || $user->isAdmin() || $user->isManager();
+    }
+
+    /**
+     * @param  list<array{item_name: string, total_units: int, damaged_units: int, notes: ?string}>  $items
+     * @return list<string>
+     */
+    private function criticalItemNames(array $items): array
+    {
+        return collect($items)
+            ->filter(function (array $item): bool {
+                $totalUnits = (int) $item['total_units'];
+                $damagedUnits = (int) $item['damaged_units'];
+                $goodUnits = max(0, $totalUnits - $damagedUnits);
+                $damagePercentage = $totalUnits > 0 ? (int) round(($damagedUnits / $totalUnits) * 100) : 0;
+                $threshold = max(1, (int) ceil($totalUnits * 0.2));
+
+                return $totalUnits > 0
+                    && $damagedUnits > 0
+                    && ($goodUnits === 0 || $goodUnits <= $threshold || $damagePercentage >= 50);
+            })
+            ->pluck('item_name')
+            ->values()
+            ->all();
     }
 
     /**

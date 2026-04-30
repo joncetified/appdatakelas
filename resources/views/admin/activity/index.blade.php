@@ -12,9 +12,21 @@
         <form method="GET" class="flex flex-col gap-4 md:flex-row md:items-end">
             <div class="w-full md:max-w-md">
                 <label for="q" class="label">Cari Aktivitas</label>
-                <input id="q" name="q" type="text" value="{{ request('q') }}" class="field mt-2" placeholder="Action atau deskripsi">
+                <input id="q" name="q" type="text" value="{{ request('q') }}" class="field mt-2" placeholder="Action, deskripsi, atau pelaku">
+            </div>
+            <div class="w-full md:max-w-xs">
+                <label for="action" class="label">Filter Action</label>
+                <select id="action" name="action" class="field mt-2">
+                    <option value="">Semua action</option>
+                    @foreach ($actions as $action)
+                        <option value="{{ $action }}" @selected(request('action') === $action)>{{ $action }}</option>
+                    @endforeach
+                </select>
             </div>
             <button type="submit" class="btn-secondary">Cari</button>
+            @if (request()->filled('q') || request()->filled('action'))
+                <a href="{{ route('admin.activity.index') }}" class="btn-secondary">Reset</a>
+            @endif
         </form>
     </section>
 
@@ -37,7 +49,7 @@
                             <td class="px-6 py-4 text-slate-600">
                                 <p>{{ $log->description }}</p>
                                 @if (! empty($log->properties))
-                                    <p class="mt-2 text-xs text-slate-400">{{ json_encode($log->properties, JSON_UNESCAPED_UNICODE) }}</p>
+                                    <pre class="mt-2 max-w-xl whitespace-pre-wrap rounded-2xl bg-slate-50 px-3 py-3 text-xs text-slate-500">{{ json_encode($log->properties, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) }}</pre>
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-slate-600">

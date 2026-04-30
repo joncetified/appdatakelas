@@ -129,4 +129,14 @@ class InfrastructureReport extends Model
     {
         return (int) $this->items->sum('damaged_units');
     }
+
+    public function getCriticalStockItemsAttribute()
+    {
+        return $this->items->filter(fn (InfrastructureReportItem $item): bool => $item->is_critical_stock)->values();
+    }
+
+    public function getCriticalStockCountAttribute(): int
+    {
+        return $this->critical_stock_items->count();
+    }
 }

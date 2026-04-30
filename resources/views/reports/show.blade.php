@@ -6,6 +6,13 @@
         InfrastructureReport::STATUS_REVISION_REQUESTED => 'bg-rose-100 text-rose-700',
         InfrastructureReport::STATUS_VERIFIED => 'bg-emerald-100 text-emerald-700',
     ];
+
+    $stockBadgeClasses = [
+        'Stok kritis' => 'stock-badge-critical',
+        'Stok habis' => 'stock-badge-critical',
+        'Perlu pemantauan' => 'stock-badge-watch',
+        'Aman' => 'stock-badge-safe',
+    ];
 @endphp
 
 @extends('layouts.app')
@@ -47,7 +54,7 @@
         </div>
     </section>
 
-    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <article class="panel px-5 py-5">
             <p class="text-sm text-slate-500">Jumlah Siswa</p>
             <p class="mt-3 text-4xl font-semibold text-slate-950">{{ $report->student_count }}</p>
@@ -63,6 +70,12 @@
         <article class="panel px-5 py-5">
             <p class="text-sm text-slate-500">Unit Rusak</p>
             <p class="mt-3 text-4xl font-semibold text-rose-600">{{ $report->damaged_units }}</p>
+        </article>
+        <article class="{{ $report->critical_stock_count > 0 ? 'panel critical-stock-card' : 'panel' }} px-5 py-5">
+            <p class="text-sm text-slate-500">Stok Kritis</p>
+            <p class="mt-3 text-4xl font-semibold {{ $report->critical_stock_count > 0 ? 'text-rose-600' : 'text-emerald-600' }}">
+                {{ $report->critical_stock_count }}
+            </p>
         </article>
     </section>
 
@@ -171,12 +184,17 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
                     @foreach ($report->items as $item)
-                        <tr class="align-top">
+                        <tr class="{{ $item->is_critical_stock ? 'critical-stock-row' : '' }} align-top">
                             <td class="px-6 py-4 font-medium text-slate-950">{{ $item->item_name }}</td>
                             <td class="px-6 py-4 text-slate-600">{{ $item->total_units }}</td>
                             <td class="px-6 py-4 text-slate-600">{{ $item->good_units }}</td>
                             <td class="px-6 py-4 text-slate-600">{{ $item->damaged_units }}</td>
-                            <td class="px-6 py-4 text-slate-600">{{ $item->notes ?: '-' }}</td>
+                            <td class="px-6 py-4 text-slate-600">
+                                <span class="stock-badge {{ $stockBadgeClasses[$item->stock_status_label] ?? 'stock-badge-safe' }}">
+                                    {{ $item->stock_status_label }}
+                                </span>
+                                <p class="mt-2">{{ $item->notes ?: '-' }}</p>
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>

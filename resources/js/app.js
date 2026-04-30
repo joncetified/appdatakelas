@@ -244,8 +244,48 @@ const initializeCharts = () => {
     });
 };
 
+const initializeFullscreenToggle = () => {
+    const button = document.querySelector('[data-fullscreen-toggle]');
+
+    if (!button || !document.fullscreenEnabled) {
+        button?.classList.add('hidden');
+        return;
+    }
+
+    const enterIcon = button.querySelector('[data-fullscreen-enter]');
+    const exitIcon = button.querySelector('[data-fullscreen-exit]');
+
+    const syncState = () => {
+        const isFullscreen = Boolean(document.fullscreenElement);
+
+        button.setAttribute('aria-pressed', String(isFullscreen));
+        button.setAttribute('aria-label', isFullscreen ? 'Keluar fullscreen' : 'Aktifkan fullscreen');
+        button.setAttribute('title', isFullscreen ? 'Keluar fullscreen' : 'Fullscreen');
+        enterIcon?.classList.toggle('hidden', isFullscreen);
+        exitIcon?.classList.toggle('hidden', !isFullscreen);
+    };
+
+    button.addEventListener('click', async () => {
+        try {
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+                return;
+            }
+
+            await document.documentElement.requestFullscreen();
+        } catch (error) {
+            button.classList.add('ring-4', 'ring-rose-200');
+            window.setTimeout(() => button.classList.remove('ring-4', 'ring-rose-200'), 1200);
+        }
+    });
+
+    document.addEventListener('fullscreenchange', syncState);
+    syncState();
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeReportRepeater();
     initializeCharts();
+    initializeFullscreenToggle();
     initializeSupportChatbot();
 });

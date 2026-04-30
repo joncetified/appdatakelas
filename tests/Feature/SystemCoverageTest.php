@@ -73,6 +73,72 @@ class SystemCoverageTest extends TestCase
         }
     }
 
+    public function test_dashboard_and_report_detail_highlight_critical_stock(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $leader = User::factory()->classLeader()->create();
+        $homeroomTeacher = User::factory()->homeroomTeacher()->create();
+        $classroom = Classroom::factory()->create([
+            'leader_id' => $leader->id,
+            'homeroom_teacher_id' => $homeroomTeacher->id,
+        ]);
+        $report = InfrastructureReport::factory()->create([
+            'classroom_id' => $classroom->id,
+            'reported_by_id' => $leader->id,
+        ]);
+
+        $report->items()->create([
+            'item_name' => 'Proyektor',
+            'total_units' => 4,
+            'damaged_units' => 3,
+            'notes' => 'Butuh penggantian.',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Stok Kritis')
+            ->assertSee('Proyektor');
+
+        $this->actingAs($superAdmin)
+            ->get(route('reports.show', $report))
+            ->assertOk()
+            ->assertSee('Stok Kritis')
+            ->assertSee('Stok kritis');
+    }
+
+    public function test_workspace_header_has_fullscreen_toggle(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($superAdmin)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('data-fullscreen-toggle', false)
+            ->assertSee('Aktifkan fullscreen');
+    }
+
+    public function test_successful_login_writes_activity_log(): void
+    {
+        $user = User::factory()->admin()->create([
+            'email' => 'login.audit@sekolah.test',
+        ]);
+
+        $response = $this->post(route('login.store'), [
+            'login' => 'login.audit@sekolah.test',
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'auth.login',
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
+            'causer_id' => $user->id,
+        ]);
+    }
+
     public function test_super_admin_can_update_site_settings(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();

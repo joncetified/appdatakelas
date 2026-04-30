@@ -6,6 +6,13 @@
         InfrastructureReport::STATUS_REVISION_REQUESTED => 'bg-rose-100 text-rose-700',
         InfrastructureReport::STATUS_VERIFIED => 'bg-emerald-100 text-emerald-700',
     ];
+
+    $stockBadgeClasses = [
+        'Stok kritis' => 'stock-badge-critical',
+        'Stok habis' => 'stock-badge-critical',
+        'Perlu pemantauan' => 'stock-badge-watch',
+        'Aman' => 'stock-badge-safe',
+    ];
 @endphp
 
 @extends('layouts.app')
@@ -79,11 +86,14 @@
 
     <section class="grid gap-4">
         @forelse ($reports as $report)
-            <article class="panel px-6 py-6">
+            <article class="{{ $report->critical_stock_count > 0 ? 'panel critical-stock-card' : 'panel' }} px-6 py-6">
                 <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div>
                         <p class="text-2xl font-semibold text-slate-950">{{ $report->classroom->name }}</p>
                         <p class="mt-1 text-sm text-slate-500">{{ $report->report_date->translatedFormat('d F Y') }}</p>
+                        @if ($report->critical_stock_count > 0)
+                            <p class="mt-3 stock-badge stock-badge-critical">{{ $report->critical_stock_count }} item stok kritis</p>
+                        @endif
                     </div>
                     <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClasses[$report->status] ?? 'bg-slate-100 text-slate-700' }}">
                         {{ $report->status_label }}
@@ -97,6 +107,22 @@
                     <p>{{ $report->items->count() }} item</p>
                     <p>{{ $report->damaged_units }} unit rusak</p>
                 </div>
+
+                @if ($report->critical_stock_count > 0)
+                    <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        @foreach ($report->critical_stock_items->take(3) as $item)
+                            <div class="rounded-2xl border border-rose-200 bg-white/75 px-4 py-3 text-sm">
+                                <div class="flex items-center justify-between gap-3">
+                                    <p class="font-semibold text-slate-950">{{ $item->item_name }}</p>
+                                    <span class="stock-badge {{ $stockBadgeClasses[$item->stock_status_label] ?? 'stock-badge-safe' }}">{{ $item->stock_status_label }}</span>
+                                </div>
+                                <p class="mt-2 text-slate-600">
+                                    {{ $item->good_units }} baik dari {{ $item->total_units }} total, {{ $item->damaged_units }} rusak.
+                                </p>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
 
                 @if (auth()->user()->isSuperAdmin())
                     <div class="mt-4 rounded-3xl bg-slate-50 px-4 py-4 text-sm text-slate-600">

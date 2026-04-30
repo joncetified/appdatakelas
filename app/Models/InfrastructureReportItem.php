@@ -40,4 +40,42 @@ class InfrastructureReportItem extends Model
     {
         return max(0, $this->total_units - $this->damaged_units);
     }
+
+    public function getCriticalThresholdAttribute(): int
+    {
+        return max(1, (int) ceil($this->total_units * 0.2));
+    }
+
+    public function getDamagePercentageAttribute(): int
+    {
+        if ($this->total_units <= 0) {
+            return 0;
+        }
+
+        return (int) round(($this->damaged_units / $this->total_units) * 100);
+    }
+
+    public function getIsCriticalStockAttribute(): bool
+    {
+        if ($this->total_units <= 0 || $this->damaged_units <= 0) {
+            return false;
+        }
+
+        return $this->good_units === 0
+            || $this->good_units <= $this->critical_threshold
+            || $this->damage_percentage >= 50;
+    }
+
+    public function getStockStatusLabelAttribute(): string
+    {
+        if ($this->is_critical_stock) {
+            return $this->good_units === 0 ? 'Stok habis' : 'Stok kritis';
+        }
+
+        if ($this->damaged_units > 0) {
+            return 'Perlu pemantauan';
+        }
+
+        return 'Aman';
+    }
 }
