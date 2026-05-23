@@ -16,27 +16,28 @@
             <div class="grid gap-5 md:grid-cols-2">
                 <div>
                     <label for="company_name" class="label">Nama Perusahaan / Sekolah</label>
-                    <input id="company_name" name="company_name" type="text" value="{{ old('company_name', $brandName) }}" class="field mt-2" required>
+                    <input id="company_name" name="company_name" type="text" value="{{ old('company_name', $brandName) }}" maxlength="40" class="field mt-2" required>
+                    <p class="mt-2 text-sm text-slate-500">Maksimal 40 karakter, tanpa simbol HTML, dan tiap kata maksimal 24 karakter.</p>
                 </div>
 
                 <div>
                     <label for="manager_name" class="label">Manager</label>
-                    <input id="manager_name" name="manager_name" type="text" value="{{ old('manager_name', $settings->manager_name) }}" class="field mt-2">
+                    <input id="manager_name" name="manager_name" type="text" value="{{ old('manager_name', $settings->manager_name) }}" maxlength="80" pattern="[\p{L}\p{M}\p{N}\s.,'()\-]+" class="field mt-2">
                 </div>
 
                 <div>
                     <label for="contact_email" class="label">Email Kontak</label>
-                    <input id="contact_email" name="contact_email" type="email" value="{{ old('contact_email', $settings->contact_email) }}" class="field mt-2">
+                    <input id="contact_email" name="contact_email" type="email" value="{{ old('contact_email', $settings->contact_email) }}" maxlength="255" class="field mt-2">
                 </div>
 
                 <div>
                     <label for="contact_phone" class="label">Telepon Kontak</label>
-                    <input id="contact_phone" name="contact_phone" type="text" value="{{ old('contact_phone', $settings->contact_phone) }}" class="field mt-2">
+                    <input id="contact_phone" name="contact_phone" type="tel" value="{{ old('contact_phone', $settings->contact_phone) }}" maxlength="16" pattern="\+?[0-9]{10,15}" class="field mt-2">
                 </div>
 
                 <div>
                     <label for="contact_whatsapp" class="label">WhatsApp Kontak</label>
-                    <input id="contact_whatsapp" name="contact_whatsapp" type="text" value="{{ old('contact_whatsapp', $settings->contact_whatsapp) }}" class="field mt-2">
+                    <input id="contact_whatsapp" name="contact_whatsapp" type="tel" value="{{ old('contact_whatsapp', $settings->contact_whatsapp) }}" maxlength="16" pattern="\+?[0-9]{10,15}" class="field mt-2">
                 </div>
 
                 <div>
@@ -55,9 +56,10 @@
                 </p>
                 <div class="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4">
                     <img
-                        src="{{ asset($settings->logo_path ?: $brandLogoPath) }}"
+                        src="{{ asset($brandLogoPath) }}"
                         alt="{{ $brandName }}"
-                        class="h-auto w-full max-w-[360px] object-contain"
+                        class="mx-auto max-h-[220px] w-auto max-w-full object-contain"
+                        onerror="this.src='{{ asset('site/logo ph.png') }}'"
                     >
                 </div>
                 @if ($settings->logo_path)
@@ -70,23 +72,23 @@
 
             <div>
                 <label for="address" class="label">Alamat</label>
-                <textarea id="address" name="address" rows="4" class="field mt-2">{{ old('address', $settings->address) }}</textarea>
+                <textarea id="address" name="address" rows="4" maxlength="500" class="field mt-2">{{ old('address', $settings->address) }}</textarea>
             </div>
 
             <div class="grid gap-5 md:grid-cols-2">
                 <div>
                     <label for="discord_webhook_url" class="label">Discord Webhook URL</label>
-                    <input id="discord_webhook_url" name="discord_webhook_url" type="url" value="{{ old('discord_webhook_url', $settings->discord_webhook_url) }}" class="field mt-2">
+                    <input id="discord_webhook_url" name="discord_webhook_url" type="url" value="{{ old('discord_webhook_url', $settings->discord_webhook_url) }}" maxlength="500" class="field mt-2">
                 </div>
 
                 <div>
                     <label for="google_recaptcha_site_key" class="label">Google reCAPTCHA Site Key</label>
-                    <input id="google_recaptcha_site_key" name="google_recaptcha_site_key" type="text" value="{{ old('google_recaptcha_site_key', $settings->google_recaptcha_site_key) }}" class="field mt-2">
+                    <input id="google_recaptcha_site_key" name="google_recaptcha_site_key" type="text" value="{{ old('google_recaptcha_site_key', $settings->google_recaptcha_site_key) }}" maxlength="255" class="field mt-2">
                 </div>
 
                 <div class="md:col-span-2">
                     <label for="google_recaptcha_secret_key" class="label">Google reCAPTCHA Secret Key</label>
-                    <input id="google_recaptcha_secret_key" name="google_recaptcha_secret_key" type="text" value="{{ old('google_recaptcha_secret_key', $settings->google_recaptcha_secret_key) }}" class="field mt-2">
+                    <input id="google_recaptcha_secret_key" name="google_recaptcha_secret_key" type="text" value="{{ old('google_recaptcha_secret_key', $settings->google_recaptcha_secret_key) }}" maxlength="255" class="field mt-2">
                 </div>
             </div>
 

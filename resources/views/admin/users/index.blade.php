@@ -40,6 +40,7 @@
                         <th class="px-6 py-4 font-semibold">Email</th>
                         <th class="px-6 py-4 font-semibold">WA</th>
                         <th class="px-6 py-4 font-semibold">Role</th>
+                        <th class="px-6 py-4 font-semibold">Status Login</th>
                         <th class="px-6 py-4 font-semibold">Penugasan</th>
                         @if (auth()->user()->isSuperAdmin())
                             <th class="px-6 py-4 font-semibold">Audit</th>
@@ -54,17 +55,29 @@
                             <td class="px-6 py-4 text-slate-600">
                                 <p>{{ $account->email }}</p>
                                 @if ($account->hasVerifiedEmail())
-                                   <p class="mt-1 text-xs text-emerald-600">Email aktif</p>
+                                   <p class="mt-1 text-xs text-emerald-600">Email terverifikasi</p>
                                 @elseif (! $account->requiresEmailVerification())
-                                   <p class="mt-1 text-xs text-slate-400">Belum diaktivasi (Opsional)</p>
+                                   <p class="mt-1 text-xs text-slate-400">Verifikasi email opsional</p>
                                 @else
                                    <p class="mt-1 text-xs text-amber-600">Menunggu verifikasi email</p>
-                                @endif                            </td>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 text-slate-600">{{ $account->whatsapp_number ?: '-' }}</td>
                             <td class="px-6 py-4">
                                 <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                                     {{ $account->role_label }}
                                 </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                @if (in_array($account->id, $activeUserIds, true))
+                                    <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                        Sedang login
+                                    </span>
+                                @else
+                                    <span class="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500">
+                                        Tidak login
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 text-slate-600">
                                 @if ($account->isClassLeader())
@@ -105,7 +118,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ auth()->user()->isSuperAdmin() ? '7' : '6' }}" class="px-6 py-10 text-center text-slate-500">Belum ada data pengguna.</td>
+                            <td colspan="{{ auth()->user()->isSuperAdmin() ? '8' : '7' }}" class="px-6 py-10 text-center text-slate-500">Belum ada data pengguna.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\ActivityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class PermissionController extends Controller
@@ -21,44 +22,65 @@ class PermissionController extends Controller
         abort_unless($request->user()?->isSuperAdmin(), 403, 'Checklist hak akses hanya dapat diatur oleh super admin.');
 
         $search = trim($request->string('q')->toString());
+        $permissionCounts = Permission::query()
+            ->join('role_permissions', 'permissions.id', '=', 'role_permissions.permission_id')
+            ->selectRaw('role_permissions.role, count(*) as total')
+            ->groupBy('role_permissions.role')
+            ->pluck('total', 'role')
+            ->map(fn (mixed $total): int => (int) $total);
+        $userCounts = User::query()
+            ->selectRaw('role, count(*) as total')
+            ->groupBy('role')
+            ->pluck('total', 'role')
+            ->map(fn (mixed $total): int => (int) $total);
 
         return view('admin.permissions.index', [
-            'users' => User::query()
-                ->with('permissions')
-                ->when($search !== '', function ($query) use ($search): void {
-                    $query->where(function ($builder) use ($search): void {
-                        $builder
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%");
-                    });
-                })
-                ->orderBy('name')
-                ->paginate(12)
-                ->withQueryString(),
+            'roles' => collect(User::roleOptions())
+                ->map(fn (string $label, string $role): array => [
+                    'role' => $role,
+                    'label' => $label,
+                    'permission_count' => $role === User::ROLE_SUPER_ADMIN
+                        ? Permission::query()->count()
+                        : ($permissionCounts[$role] ?? 0),
+                    'user_count' => $userCounts[$role] ?? 0,
+                ])
+                ->when($search !== '', fn (Collection $roles): Collection => $roles->filter(
+                    fn (array $role): bool => str_contains(strtolower($role['label']), strtolower($search))
+                        || str_contains(strtolower($role['role']), strtolower($search)),
+                ))
+                ->values(),
         ]);
     }
 
-    public function edit(User $user): View
+    public function edit(string $role): View
     {
         abort_unless(request()->user()?->isSuperAdmin(), 403, 'Checklist hak akses hanya dapat diatur oleh super admin.');
-        abort_if($user->isSuperAdmin(), 403, 'Permission super admin tidak diubah dari checklist.');
+        abort_unless(array_key_exists($role, User::roleOptions()), 404);
+        abort_if($role === User::ROLE_SUPER_ADMIN, 403, 'Permission super admin tidak diubah dari checklist.');
 
         $permissions = Permission::query()
             ->orderBy('group')
             ->orderBy('label')
             ->get()
             ->groupBy('group');
+        $selectedPermissionIds = Permission::query()
+            ->whereIn('slug', User::permissionSlugsForRole($role))
+            ->pluck('id')
+            ->all();
 
         return view('admin.permissions.form', [
-            'user' => $user->load('permissions'),
+            'role' => $role,
+            'roleLabel' => User::roleOptions()[$role],
+            'selectedPermissionIds' => $selectedPermissionIds,
             'permissions' => $permissions,
         ]);
     }
 
-    public function update(Request $request, User $user): RedirectResponse
+    public function update(Request $request, string $role): RedirectResponse
     {
         abort_unless($request->user()?->isSuperAdmin(), 403, 'Checklist hak akses hanya dapat diatur oleh super admin.');
-        abort_if($user->isSuperAdmin(), 403, 'Permission super admin tidak diubah dari checklist.');
+        abort_unless(array_key_exists($role, User::roleOptions()), 404);
+        abort_if($role === User::ROLE_SUPER_ADMIN, 403, 'Permission super admin tidak diubah dari checklist.');
 
         $allowedPermissionIds = Permission::query()->pluck('id')->all();
         $validated = $request->validate([
@@ -66,16 +88,17 @@ class PermissionController extends Controller
             'permissions.*' => ['integer', 'in:'.implode(',', $allowedPermissionIds)],
         ]);
 
-        $user->permissions()->sync($validated['permissions'] ?? []);
-        $user->unsetRelation('permissions');
+        User::syncRolePermissionIds($role, $validated['permissions'] ?? []);
 
         $this->activityService->log(
             action: 'permission.updated',
-            description: "Checklist akses untuk {$user->email} diperbarui.",
-            subject: $user,
-            properties: ['permission_ids' => $validated['permissions'] ?? []],
+            description: 'Checklist akses role '.User::roleOptions()[$role].' diperbarui.',
+            properties: [
+                'role' => $role,
+                'permission_ids' => $validated['permissions'] ?? [],
+            ],
         );
 
-        return redirect()->route('admin.permissions.index')->with('success', 'Hak akses pengguna berhasil diperbarui.');
+        return redirect()->route('admin.permissions.index')->with('success', 'Hak akses role berhasil diperbarui.');
     }
 }

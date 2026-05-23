@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 210" role="img" aria-label="Sekolah Permata Harapan">
+  <rect width="560" height="210" rx="24" fill="#fff7ed"/>
+  <g transform="translate(48 38)">
+    <path d="M66 6c32 7 54 35 54 68 0 38-31 69-69 69H28c39-23 48-53 38-87-5-17-16-34 0-50Z" fill="#ff4b23"/>
+    <path d="M42 43h45v16H42z" fill="#44291d"/>
+    <path d="M48 59h32l9 82H39z" fill="#3a2117"/>
+    <path d="M51 75h21v16H51zm-3 34h27v17H48z" fill="#6f4a37"/>
+    <path d="M31 141h66l10 14H20z" fill="#23140f"/>
+  </g>
+  <g transform="translate(178 46)" font-family="Arial, Helvetica, sans-serif" font-weight="800">
+    <text x="0" y="34" font-size="42" fill="#2b1b16">sekolah</text>
+    <text x="0" y="94" font-size="68" fill="#ff7a1a" stroke="#2b1b16" stroke-width="2">PERMATA</text>
+    <text x="0" y="154" font-size="68" fill="#ff7a1a" stroke="#2b1b16" stroke-width="2">HARAPAN</text>
+  </g>
+</svg>

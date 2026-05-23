@@ -230,9 +230,9 @@
                         <tr>
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ $report->report_date->translatedFormat('d M Y') }}</td>
-                            <td>{{ $report->classroom->name }}</td>
+                            <td>{{ $report->classroom?->name ?? 'Kelas tidak tersedia' }}</td>
                             <td>{{ $report->status_label }}</td>
-                            <td>{{ $report->reporter->name }}</td>
+                            <td>{{ $report->reporter?->name ?? '-' }}</td>
                             <td>{{ $report->verifier?->name ?? '-' }}</td>
                             <td>{{ $report->student_count }}</td>
                             <td>{{ $report->teacher_count }}</td>

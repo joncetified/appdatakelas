@@ -31,6 +31,9 @@ class BackupService
             ],
             'site_settings' => SiteSetting::query()->get()->toArray(),
             'permissions' => Permission::query()->get()->toArray(),
+            'role_permissions' => Schema::hasTable('role_permissions')
+                ? DB::table('role_permissions')->get()->map(fn (object $row): array => (array) $row)->all()
+                : [],
             'users' => User::withTrashed()->with('permissions:id,slug')->get()->toArray(),
             'classrooms' => Classroom::withTrashed()->get()->toArray(),
             'reports' => InfrastructureReport::withTrashed()->get()->toArray(),
@@ -52,6 +55,7 @@ class BackupService
         DB::transaction(function () use ($payload): void {
             $tables = [
                 'user_permissions',
+                'role_permissions',
                 'activity_logs',
                 'income_entries',
                 'infrastructure_report_items',
@@ -73,6 +77,14 @@ class BackupService
                     fn ($row) => collect($row)->except(['users'])->all(),
                     $payload['permissions']
                 ));
+            }
+
+            if (! empty($payload['role_permissions']) && Schema::hasTable('role_permissions')) {
+                DB::table('role_permissions')->insert($payload['role_permissions']);
+            }
+
+            if (! array_key_exists('role_permissions', $payload) && Schema::hasTable('role_permissions')) {
+                $this->seedDefaultRolePermissions();
             }
 
             if (! empty($payload['users'])) {
@@ -133,5 +145,32 @@ class BackupService
                 DB::table('income_entries')->insert($payload['income_entries']);
             }
         });
+    }
+
+    private function seedDefaultRolePermissions(): void
+    {
+        $permissionIdsBySlug = Permission::query()->pluck('id', 'slug')->all();
+        $rows = [];
+
+        foreach (array_keys(User::roleOptions()) as $role) {
+            foreach (User::defaultPermissionSlugsForRole($role) as $slug) {
+                $permissionId = $permissionIdsBySlug[$slug] ?? null;
+
+                if (! $permissionId) {
+                    continue;
+                }
+
+                $rows[] = [
+                    'role' => $role,
+                    'permission_id' => $permissionId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        if ($rows !== []) {
+            DB::table('role_permissions')->insert($rows);
+        }
     }
 }

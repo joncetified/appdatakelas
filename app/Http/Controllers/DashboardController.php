@@ -11,7 +11,9 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
+use Throwable;
 
 class DashboardController extends Controller
 {
@@ -20,6 +22,10 @@ class DashboardController extends Controller
         $user = $request->user();
         $period = $this->normalizePeriod($request->string('report_period')->toString());
         $chartType = $this->normalizeChartType($request->string('chart_type')->toString());
+        $hasClassroomsTable = $this->hasTable('classrooms');
+        $hasReportsTable = $this->hasTable('infrastructure_reports');
+        $hasReportItemsTable = $this->hasTable('infrastructure_report_items');
+        $hasActivityLogsTable = $this->hasTable('activity_logs');
 
         if ($user->hasOverviewAccess()) {
             return view('dashboard', [
@@ -30,28 +36,28 @@ class DashboardController extends Controller
                 'selectedPeriod' => $period,
                 'selectedChartType' => $chartType,
                 'stats' => [
-                    'classrooms' => Classroom::count(),
+                    'classrooms' => $hasClassroomsTable ? Classroom::count() : 0,
                     'users' => User::count(),
-                    'pending_reports' => InfrastructureReport::query()
+                    'pending_reports' => $hasReportsTable ? InfrastructureReport::query()
                         ->where('status', InfrastructureReport::STATUS_SUBMITTED)
-                        ->count(),
-                    'verified_reports' => InfrastructureReport::query()
+                        ->count() : 0,
+                    'verified_reports' => $hasReportsTable ? InfrastructureReport::query()
                         ->where('status', InfrastructureReport::STATUS_VERIFIED)
-                        ->count(),
+                        ->count() : 0,
                 ],
-                'recentReports' => InfrastructureReport::query()
+                'recentReports' => $hasReportsTable && $hasReportItemsTable ? InfrastructureReport::query()
                     ->with(['classroom', 'reporter', 'verifier', 'items'])
                     ->latest('report_date')
                     ->latest('created_at')
                     ->take(6)
-                    ->get(),
+                    ->get() : collect(),
                 'criticalItems' => $this->criticalStockItems($user),
-                'recentActivityLogs' => ActivityLog::query()
+                'recentActivityLogs' => $hasActivityLogsTable ? ActivityLog::query()
                     ->with('causer')
                     ->latest()
                     ->take(6)
-                    ->get(),
-                'reportChart' => $user->hasPermission('analytics.view')
+                    ->get() : collect(),
+                'reportChart' => $hasReportsTable && $user->hasPermission('analytics.view')
                     ? $this->reportChartData($period, $chartType)
                     : null,
                 'incomeCards' => $user->canViewIncomeDashboard()
@@ -63,40 +69,69 @@ class DashboardController extends Controller
             ]);
         }
 
+        if (! $hasClassroomsTable) {
+            return view('dashboard', [
+                'mode' => $user->isClassLeader() ? User::ROLE_CLASS_LEADER : User::ROLE_HOMEROOM_TEACHER,
+                'classroom' => null,
+                'classrooms' => collect(),
+                'criticalItems' => collect(),
+                'pendingReports' => collect(),
+                'recentReports' => collect(),
+            ]);
+        }
+
         if ($user->isClassLeader()) {
-            $classroom = $user->ledClassroom()
-                ->with(['homeroomTeacher', 'latestReport.items', 'latestReport.verifier'])
-                ->first();
+            $classroomQuery = $user->ledClassroom()->with('homeroomTeacher');
+
+            if ($hasReportsTable && $hasReportItemsTable) {
+                $classroomQuery->with(['latestReport.items', 'latestReport.verifier']);
+            }
+
+            $classroom = $classroomQuery->first();
+
+            if ($classroom && (! $hasReportsTable || ! $hasReportItemsTable)) {
+                $classroom->setRelation('latestReport', null);
+            }
 
             return view('dashboard', [
                 'mode' => User::ROLE_CLASS_LEADER,
                 'classroom' => $classroom,
-                'recentReports' => $classroom
+                'recentReports' => $classroom && $hasReportsTable && $hasReportItemsTable
                     ? $classroom->reports()->with(['items', 'verifier'])->latest('report_date')->take(5)->get()
                     : collect(),
                 'criticalItems' => $this->criticalStockItems($user),
             ]);
         }
 
-        $classrooms = $user->homeroomClassrooms()
-            ->withCount([
+        $classroomsQuery = $user->homeroomClassrooms()->orderBy('name');
+
+        if ($hasReportsTable) {
+            $classroomsQuery->withCount([
                 'reports as pending_reports_count' => fn ($query) => $query->where('status', InfrastructureReport::STATUS_SUBMITTED),
                 'reports as verified_reports_count' => fn ($query) => $query->where('status', InfrastructureReport::STATUS_VERIFIED),
-            ])
-            ->orderBy('name')
-            ->get();
+            ]);
+        }
+
+        $classrooms = $classroomsQuery->get();
+
+        if (! $hasReportsTable) {
+            $classrooms->each(function (Classroom $classroom): void {
+                $classroom->setAttribute('pending_reports_count', 0);
+                $classroom->setAttribute('verified_reports_count', 0);
+            });
+        }
 
         return view('dashboard', [
             'mode' => User::ROLE_HOMEROOM_TEACHER,
             'classrooms' => $classrooms,
             'criticalItems' => $this->criticalStockItems($user),
-            'pendingReports' => InfrastructureReport::query()
+            'pendingReports' => $hasReportsTable && $hasReportItemsTable ? InfrastructureReport::query()
                 ->visibleTo($user)
                 ->with(['classroom', 'reporter', 'items'])
                 ->where('status', InfrastructureReport::STATUS_SUBMITTED)
                 ->latest('report_date')
                 ->take(6)
-                ->get(),
+                ->get() : collect(),
         ]);
     }
 
@@ -105,6 +140,10 @@ class DashboardController extends Controller
      */
     private function criticalStockItems(User $user): Collection
     {
+        if (! $this->hasTable('infrastructure_report_items') || ! $this->hasTable('infrastructure_reports')) {
+            return collect();
+        }
+
         return InfrastructureReportItem::query()
             ->with(['report.classroom', 'report.reporter'])
             ->where('damaged_units', '>', 0)
@@ -132,6 +171,21 @@ class DashboardController extends Controller
      */
     private function reportChartData(string $period, string $chartType): array
     {
+        if (! $this->hasTable('infrastructure_reports')) {
+            return [
+                'title' => 'Trend Laporan Infrastruktur',
+                'type' => $chartType,
+                'format' => 'number',
+                'labels' => [],
+                'datasets' => [[
+                    'label' => 'Jumlah Laporan',
+                    'data' => [],
+                    'backgroundColor' => '#0f172a',
+                    'borderColor' => '#0f172a',
+                ]],
+            ];
+        }
+
         if ($chartType === 'pie') {
             [$start, $end] = $this->rangeBounds($period);
 
@@ -173,6 +227,21 @@ class DashboardController extends Controller
      */
     private function incomeChartData(string $period, string $chartType): array
     {
+        if (! $this->hasTable('income_entries')) {
+            return [
+                'title' => 'Trend Income',
+                'type' => $chartType,
+                'format' => 'currency',
+                'labels' => [],
+                'datasets' => [[
+                    'label' => 'Income',
+                    'data' => [],
+                    'backgroundColor' => '#2563eb',
+                    'borderColor' => '#2563eb',
+                ]],
+            ];
+        }
+
         if ($chartType === 'pie') {
             [$start, $end] = $this->rangeBounds($period);
             $total = (float) IncomeEntry::query()->whereBetween('entry_date', [$start, $end])->sum('amount');
@@ -213,6 +282,15 @@ class DashboardController extends Controller
      */
     private function incomeCards(): array
     {
+        if (! $this->hasTable('income_entries')) {
+            return [
+                'today' => 0.0,
+                'yesterday' => 0.0,
+                'this_month' => 0.0,
+                'last_month' => 0.0,
+            ];
+        }
+
         $today = today();
         $yesterday = today()->copy()->subDay();
         $thisMonthStart = now()->copy()->startOfMonth();
@@ -305,5 +383,14 @@ class DashboardController extends Controller
             'yearly' => [now()->startOfYear()->toDateString(), now()->endOfYear()->toDateString()],
             default => [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()],
         };
+    }
+
+    private function hasTable(string $table): bool
+    {
+        try {
+            return Schema::hasTable($table);
+        } catch (Throwable) {
+            return false;
+        }
     }
 }

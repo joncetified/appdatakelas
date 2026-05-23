@@ -8,8 +8,8 @@
     ];
 
     $stockBadgeClasses = [
-        'Stok kritis' => 'stock-badge-critical',
-        'Stok habis' => 'stock-badge-critical',
+        'Kondisi kritis' => 'stock-badge-critical',
+        'Semua unit rusak' => 'stock-badge-critical',
         'Perlu pemantauan' => 'stock-badge-watch',
         'Aman' => 'stock-badge-safe',
     ];
@@ -88,11 +88,11 @@
         @forelse ($reports as $report)
             <article class="{{ $report->critical_stock_count > 0 ? 'panel critical-stock-card' : 'panel' }} px-6 py-6">
                 <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div>
-                        <p class="text-2xl font-semibold text-slate-950">{{ $report->classroom->name }}</p>
+                    <div class="safe-wrap">
+                        <p class="safe-wrap text-2xl font-semibold text-slate-950">{{ $report->classroom?->name ?? 'Kelas tidak tersedia' }}</p>
                         <p class="mt-1 text-sm text-slate-500">{{ $report->report_date->translatedFormat('d F Y') }}</p>
                         @if ($report->critical_stock_count > 0)
-                            <p class="mt-3 stock-badge stock-badge-critical">{{ $report->critical_stock_count }} item stok kritis</p>
+                            <p class="mt-3 stock-badge stock-badge-critical">{{ $report->critical_stock_count }} item kondisi kritis</p>
                         @endif
                     </div>
                     <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClasses[$report->status] ?? 'bg-slate-100 text-slate-700' }}">
@@ -101,7 +101,7 @@
                 </div>
 
                 <div class="mt-5 grid gap-3 text-sm text-slate-600 md:grid-cols-2 xl:grid-cols-5">
-                    <p>Pelapor: {{ $report->reporter->name }}</p>
+                    <p class="safe-wrap">Pelapor: {{ $report->reporter?->name ?? '-' }}</p>
                     <p>{{ $report->student_count }} siswa</p>
                     <p>{{ $report->teacher_count }} guru</p>
                     <p>{{ $report->items->count() }} item</p>
@@ -111,9 +111,9 @@
                 @if ($report->critical_stock_count > 0)
                     <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                         @foreach ($report->critical_stock_items->take(3) as $item)
-                            <div class="rounded-2xl border border-rose-200 bg-white/75 px-4 py-3 text-sm">
+                            <div class="safe-wrap rounded-2xl border border-rose-200 bg-white/75 px-4 py-3 text-sm">
                                 <div class="flex items-center justify-between gap-3">
-                                    <p class="font-semibold text-slate-950">{{ $item->item_name }}</p>
+                                    <p class="safe-wrap font-semibold text-slate-950">{{ $item->item_name }}</p>
                                     <span class="stock-badge {{ $stockBadgeClasses[$item->stock_status_label] ?? 'stock-badge-safe' }}">{{ $item->stock_status_label }}</span>
                                 </div>
                                 <p class="mt-2 text-slate-600">
@@ -126,8 +126,8 @@
 
                 @if (auth()->user()->isSuperAdmin())
                     <div class="mt-4 rounded-3xl bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                        <p>Dibuat oleh: {{ $report->createdByUser?->name ?? $report->reporter->name }}</p>
-                        <p class="mt-1">Diubah oleh: {{ $report->updatedByUser?->name ?? '-' }}</p>
+                        <p class="safe-wrap">Dibuat oleh: {{ $report->createdByUser?->name ?? $report->reporter?->name ?? '-' }}</p>
+                        <p class="safe-wrap mt-1">Diubah oleh: {{ $report->updatedByUser?->name ?? '-' }}</p>
                     </div>
                 @endif
 
@@ -135,7 +135,7 @@
                     <a href="{{ route('reports.show', $report) }}" class="btn-secondary">Detail</a>
                     @if (
                         auth()->user()->isSuperAdmin()
-                        || (auth()->user()->isClassLeader() && $report->classroom->leader_id === auth()->id() && $report->isEditable())
+                        || (auth()->user()->isClassLeader() && $report->classroom?->leader_id === auth()->id() && $report->isEditable())
                     )
                         <a href="{{ route('reports.edit', $report) }}" class="btn-primary">Edit</a>
                     @endif
@@ -143,7 +143,7 @@
                         auth()->user()->hasPermission('reports.delete')
                         && (
                             ! auth()->user()->isClassLeader()
-                            || ($report->classroom->leader_id === auth()->id() && $report->isEditable())
+                            || ($report->classroom?->leader_id === auth()->id() && $report->isEditable())
                         )
                     )
                         <form method="POST" action="{{ route('reports.destroy', $report) }}" onsubmit="return confirm('Hapus laporan ini?')">

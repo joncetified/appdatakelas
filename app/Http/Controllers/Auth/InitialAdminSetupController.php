@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\InputRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,10 +32,10 @@ class InitialAdminSetupController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => InputRules::humanName(),
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'whatsapp_number' => ['nullable', 'string', 'max:30'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'whatsapp_number' => InputRules::phone(minDigits: 10),
+            'password' => InputRules::password(),
         ]);
 
         $admin = User::query()->create([

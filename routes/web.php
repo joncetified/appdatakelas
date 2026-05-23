@@ -72,7 +72,7 @@ Route::middleware('auth')->group(function (): void {
     })->name('verification.send');
 
     Route::middleware('verified')->group(function (): void {
-        Route::get('/chat', [ChatbotController::class, 'index'])->name('chat.index');
+        Route::get('/chat', fn () => redirect()->route('dashboard'))->name('chat.index');
         Route::post('/chat/message', [ChatbotController::class, 'sendMessage'])->name('chat.message');
 
         Route::get('/dashboard', DashboardController::class)
@@ -161,8 +161,8 @@ Route::middleware('auth')->group(function (): void {
 
                 Route::middleware('permission:permissions.manage')->group(function (): void {
                     Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
-                    Route::get('/permissions/{user}/edit', [PermissionController::class, 'edit'])->name('permissions.edit');
-                    Route::put('/permissions/{user}', [PermissionController::class, 'update'])->name('permissions.update');
+                    Route::get('/permissions/{role}/edit', [PermissionController::class, 'edit'])->name('permissions.edit');
+                    Route::put('/permissions/{role}', [PermissionController::class, 'update'])->name('permissions.update');
                 });
 
                 Route::get('/settings', [SiteSettingController::class, 'edit'])

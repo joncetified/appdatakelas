@@ -1,6 +1,31 @@
-@php($pageBrandName = $brandName ?? 'SPH')
-@php($pageBrandLogoPath = $brandLogoPath ?? 'site/permata-harapan-logo.svg')
-@php($pageHomeUrl = $homeUrl ?? url('/'))
+@php
+    $defaultErrorBrandName = 'SPH';
+    $defaultErrorLogoPath = 'site/logo ph.png';
+    $errorSettings = null;
+
+    try {
+        if (class_exists(\App\Models\SiteSetting::class) && \Illuminate\Support\Facades\Schema::hasTable('site_settings')) {
+            $errorSettings = \App\Models\SiteSetting::query()->first();
+        }
+    } catch (\Throwable) {
+        $errorSettings = null;
+    }
+
+    $pageBrandName = $brandName ?? ($errorSettings?->company_name ?: $defaultErrorBrandName);
+    $pageBrandLogoPath = $brandLogoPath ?? ($errorSettings?->logo_path ?: $defaultErrorLogoPath);
+
+    if (! is_file(public_path($pageBrandLogoPath))) {
+        $pageBrandLogoPath = $defaultErrorLogoPath;
+    }
+
+    $systemUrl = auth()->check() && Route::has('dashboard')
+        ? route('dashboard')
+        : (Route::has('login') ? route('login') : url('/'));
+    $previousUrl = url()->previous();
+    $currentUrl = url()->current();
+    $safeBackUrl = $previousUrl && $previousUrl !== $currentUrl ? $previousUrl : $systemUrl;
+    $pageHomeUrl = $homeUrl ?? $systemUrl;
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -57,10 +82,12 @@
 
         img {
             display: block;
-            width: 100%;
-            max-width: 280px;
+            width: auto;
+            max-width: min(100%, 320px);
+            max-height: 220px;
             height: auto;
             margin: 0 auto 18px;
+            object-fit: contain;
         }
 
         .eyebrow {
@@ -128,12 +155,12 @@
 <body>
     <main>
         <section>
-            <img src="{{ asset($pageBrandLogoPath) }}" alt="{{ $pageBrandName }}">
+            <img src="{{ asset($pageBrandLogoPath) }}" alt="{{ $pageBrandName }}" onerror="this.src='{{ asset($defaultErrorLogoPath) }}'">
             <p class="eyebrow">Error {{ $status }}</p>
             <h1>Terjadi masalah pada halaman</h1>
             <p class="message">{{ $message }}</p>
             <div class="actions">
-                <a href="{{ url()->previous() }}" class="button button-secondary">Kembali</a>
+                <a href="{{ $safeBackUrl }}" class="button button-secondary" onclick="if (document.referrer && document.referrer !== window.location.href) { history.back(); return false; }">Kembali</a>
                 <a href="{{ $pageHomeUrl }}" class="button button-primary">Masuk ke Sistem</a>
             </div>
         </section>

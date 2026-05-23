@@ -29,17 +29,17 @@
 
                 <div>
                     <label for="email" class="label">Email</label>
-                    <input id="email" name="email" type="email" value="{{ old('email', $request->email) }}" class="field mt-2" required autofocus>
+                    <input id="email" name="email" type="email" value="{{ old('email', $request->email) }}" maxlength="255" class="field mt-2" required autofocus>
                 </div>
 
                 <div>
                     <label for="password" class="label">Password Baru</label>
-                    <input id="password" name="password" type="password" class="field mt-2" required>
+                    <input id="password" name="password" type="password" minlength="8" maxlength="72" class="field mt-2" required>
                 </div>
 
                 <div>
                     <label for="password_confirmation" class="label">Konfirmasi Password</label>
-                    <input id="password_confirmation" name="password_confirmation" type="password" class="field mt-2" required>
+                    <input id="password_confirmation" name="password_confirmation" type="password" minlength="8" maxlength="72" class="field mt-2" required>
                 </div>
 
                 <button type="submit" class="btn-primary w-full justify-center">

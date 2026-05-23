@@ -25,7 +25,7 @@ class UserFactory extends Factory
                 return;
             }
 
-            $user->syncPermissionsBySlugs(User::defaultPermissionSlugsForRole($user->role));
+            $user->syncPermissionsBySlugs(User::permissionSlugsForRole($user->role));
         });
     }
 

@@ -7,6 +7,7 @@
         'Cara buat laporan',
         'Kontak admin',
     ];
+    $initialGreeting = 'Halo '.auth()->user()->name.'. Saya siap bantu menjelaskan menu aplikasi, laporan, verifikasi, income, atau kontak admin sekolah.';
 @endphp
 
 @section('content')
@@ -117,6 +118,7 @@
         const typingIndicator = document.getElementById('typing-indicator');
         const sendButton = document.getElementById('send-button');
         const promptButtons = document.querySelectorAll('.prompt-chip');
+        const initialGreeting = @json($initialGreeting);
 
         let previousResponseId = null;
 
@@ -126,22 +128,25 @@
 
         const formatTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        const createActionLinks = (actions = []) => {
+        const appendActionLinks = (bubble, actions = []) => {
             if (!Array.isArray(actions) || actions.length === 0) {
-                return '';
+                return;
             }
 
-            return `
-                <div class="mt-3 flex flex-wrap gap-2">
-                    ${actions
-                        .map((action) => `
-                            <a href="${action.url}" class="btn-secondary px-3 py-2 text-xs">
-                                ${action.label}
-                            </a>
-                        `)
-                        .join('')}
-                </div>
-            `;
+            const links = document.createElement('div');
+            links.className = 'mt-3 flex flex-wrap gap-2';
+
+            actions.forEach((action) => {
+                const link = document.createElement('a');
+                const url = String(action?.url || '#');
+
+                link.href = url.startsWith('/') || url.startsWith(window.location.origin) ? url : '#';
+                link.className = 'btn-secondary px-3 py-2 text-xs';
+                link.textContent = String(action?.label || 'Buka');
+                links.appendChild(link);
+            });
+
+            bubble.appendChild(links);
         };
 
         const addMessage = (role, text, options = {}) => {
@@ -171,10 +176,14 @@
                 bubble.className = 'rounded-[24px] rounded-tl-none border border-rose-200 bg-rose-50 px-5 py-4 text-sm leading-7 text-rose-700 shadow-sm';
             }
 
-            bubble.innerHTML = `
-                <p class="whitespace-pre-wrap">${text}</p>
-                ${isAI ? createActionLinks(options.actions) : ''}
-            `;
+            const paragraph = document.createElement('p');
+            paragraph.className = 'whitespace-pre-wrap';
+            paragraph.textContent = String(text || '');
+            bubble.appendChild(paragraph);
+
+            if (isAI) {
+                appendActionLinks(bubble, options.actions);
+            }
 
             const meta = document.createElement('p');
             meta.className = 'px-1 text-[11px] font-medium uppercase tracking-[0.24em] text-slate-400';
@@ -267,19 +276,8 @@
             }
 
             previousResponseId = null;
-            chatContainer.innerHTML = `
-                <div class="flex items-start gap-4">
-                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-700">
-                        <span class="text-[10px] font-bold tracking-[0.2em]">AI</span>
-                    </div>
-                    <div class="max-w-[90%] space-y-2">
-                        <div class="rounded-[24px] rounded-tl-none border border-white/90 bg-white px-5 py-4 text-sm leading-7 text-slate-700 shadow-sm shadow-slate-200/70">
-                            Halo {{ auth()->user()->name }}. Saya siap bantu menjelaskan menu aplikasi, laporan, verifikasi, income, atau kontak admin sekolah.
-                        </div>
-                        <p class="px-1 text-[11px] font-medium uppercase tracking-[0.24em] text-slate-400">Asisten PH</p>
-                    </div>
-                </div>
-            `;
+            chatContainer.textContent = '';
+            addMessage('ai', initialGreeting);
         };
     </script>
 @endsection

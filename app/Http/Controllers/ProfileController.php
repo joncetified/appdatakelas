@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\ActivityService;
+use App\Support\InputRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -31,9 +32,9 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => InputRules::humanName(),
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user)],
-            'whatsapp_number' => ['nullable', 'string', 'max:30'],
+            'whatsapp_number' => InputRules::phone(minDigits: 10),
             'avatar' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_avatar' => ['nullable', 'boolean'],
         ]);
@@ -87,7 +88,7 @@ class ProfileController extends Controller
         $user = $request->user();
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => InputRules::password(),
         ]);
 
         $user->forceFill([

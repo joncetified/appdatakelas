@@ -22,12 +22,12 @@
             <div class="grid gap-5 md:grid-cols-2">
                 <div>
                     <label for="name" class="label">Nama Kelas / Ruang</label>
-                    <input id="name" name="name" type="text" value="{{ old('name', $classroom->name) }}" class="field mt-2" required>
+                    <input id="name" name="name" type="text" value="{{ old('name', $classroom->name) }}" maxlength="80" class="field mt-2" required>
                 </div>
 
                 <div>
                     <label for="location" class="label">Lokasi</label>
-                    <input id="location" name="location" type="text" value="{{ old('location', $classroom->location) }}" class="field mt-2">
+                    <input id="location" name="location" type="text" value="{{ old('location', $classroom->location) }}" maxlength="120" class="field mt-2">
                 </div>
 
                 <div>
@@ -57,7 +57,7 @@
 
             <div>
                 <label for="description" class="label">Deskripsi Singkat</label>
-                <textarea id="description" name="description" rows="4" class="field mt-2">{{ old('description', $classroom->description) }}</textarea>
+                <textarea id="description" name="description" rows="4" maxlength="500" class="field mt-2">{{ old('description', $classroom->description) }}</textarea>
             </div>
 
             <div class="flex flex-wrap gap-3">

@@ -7,6 +7,7 @@ use App\Models\SiteSetting;
 use App\Models\User;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -32,7 +33,7 @@ class GroqSupportChatService
         }
 
         $apiKey = (string) (config('services.groq.key') ?: config('services.groq.api_key'));
-        $settings = SiteSetting::query()->first();
+        $settings = $this->siteSettings();
 
         if ($apiKey === '') {
             return $this->localReply($message, $user, $currentRoute, $settings);
@@ -119,7 +120,7 @@ class GroqSupportChatService
 
             if ($menus === []) {
                 return $this->response(
-                    answer: 'Saat ini Anda belum login, jadi menu utama yang tersedia adalah Login, Daftar, dan Lupa Password.',
+                    answer: 'Saat ini Anda belum login, jadi menu utama yang tersedia adalah Login dan Lupa Password. Akun baru dibuat oleh super admin sekolah.',
                     suggestions: $this->defaultSuggestions($user),
                     actions: $menus,
                 );
@@ -201,8 +202,8 @@ class GroqSupportChatService
 
         return $this->response(
             answer: $routeSummary
-                ? 'Saya bisa bantu jelaskan halaman ini juga. Saat ini Anda sedang membuka '.$routeSummary
-                : 'Saya siap bantu untuk pertanyaan dasar seperti menu, login, laporan, status laporan, dan kontak admin.',
+                ? 'Jawaban singkat: halaman ini adalah '.$routeSummary.' Kalau pertanyaan Anda tentang cara pakai halaman ini, gunakan tombol atau form yang tersedia sesuai hak akses akun Anda.'
+                : 'Jawaban singkat: saya bisa bantu soal login, lupa password, laporan, dashboard, income, menu akun, dan kontak admin. Tulis pertanyaannya langsung, misalnya "cara input laporan" atau "kenapa menu saya tidak muncul".',
             suggestions: $this->defaultSuggestions($user),
             actions: array_slice(array_merge($this->actionsForMessage($message, $user, $settings), $this->contactActions($settings, $user)), 0, 4),
         );
@@ -319,6 +320,19 @@ class GroqSupportChatService
         ]);
 
         return $parts === [] ? null : $this->naturalList($parts);
+    }
+
+    private function siteSettings(): ?SiteSetting
+    {
+        try {
+            if (! Schema::hasTable('site_settings')) {
+                return null;
+            }
+
+            return SiteSetting::query()->first();
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -443,7 +457,6 @@ class GroqSupportChatService
         if (! $user) {
             return [
                 $this->action('Login', route('login')),
-                $this->action('Daftar', route('register')),
                 $this->action('Lupa Password', route('password.request')),
             ];
         }

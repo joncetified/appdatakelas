@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use App\Notifications\LoginOtpNotification;
 use App\Notifications\PasswordResetOtpNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -151,6 +152,47 @@ class LoginOtpTest extends TestCase
         $this->assertTrue(Hash::check('PasswordBaru123!', $user->refresh()->password));
     }
 
+    public function test_register_sends_email_verification_link_before_dashboard_access(): void
+    {
+        Notification::fake();
+
+        $response = $this->post(route('register.store'), [
+            'name' => 'Ketua Baru',
+            'email' => 'ketua.baru@sekolah.test',
+            'whatsapp_number' => '081255500000',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
+        ]);
+
+        $response->assertRedirect(route('verification.notice'));
+
+        $user = User::query()->where('email', 'ketua.baru@sekolah.test')->firstOrFail();
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertNull($user->email_verified_at);
+        Notification::assertSentTo($user, VerifyEmail::class);
+    }
+
+    public function test_register_rejects_unsafe_name_whatsapp_and_weak_password(): void
+    {
+        Notification::fake();
+
+        $response = $this->post(route('register.store'), [
+            'name' => 'Ketua <script>',
+            'email' => 'unsafe@sekolah.test',
+            'whatsapp_number' => '<script>',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response->assertSessionHasErrors(['name', 'whatsapp_number', 'password']);
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', [
+            'email' => 'unsafe@sekolah.test',
+        ]);
+        Notification::assertNothingSent();
+    }
+
     public function test_google_callback_links_google_id_and_logs_in_existing_user(): void
     {
         config()->set('services.google.client_id', 'test-client-id');
@@ -189,18 +231,20 @@ class LoginOtpTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_google_callback_creates_first_user_when_email_is_not_registered(): void
+    public function test_google_callback_creates_and_logs_in_unregistered_google_email(): void
     {
         config()->set('services.google.client_id', 'test-client-id');
         config()->set('services.google.client_secret', 'test-client-secret');
         config()->set('services.google.redirect', 'http://localhost:8000/auth-google-callback');
 
+        User::factory()->superAdmin()->create();
+
         $googleUser = (new SocialiteUser)
             ->setRaw(['email_verified' => true])
             ->map([
                 'id' => 'google-user-new',
-                'email' => 'pemilik@sph.test',
-                'name' => 'Pemilik SPH',
+                'email' => 'belum.terdaftar@sph.test',
+                'name' => 'Belum Terdaftar',
             ]);
 
         $provider = Mockery::mock();
@@ -215,13 +259,60 @@ class LoginOtpTest extends TestCase
 
         $response->assertRedirect(route('dashboard'));
 
-        $user = User::query()->where('email', 'pemilik@sph.test')->firstOrFail();
+        $user = User::query()->where('email', 'belum.terdaftar@sph.test')->firstOrFail();
 
-        $this->assertSame('Pemilik SPH', $user->name);
+        $this->assertSame('Belum Terdaftar', $user->name);
         $this->assertSame('google-user-new', $user->google_id);
-        $this->assertSame(User::ROLE_SUPER_ADMIN, $user->role);
+        $this->assertSame(User::ROLE_CLASS_LEADER, $user->role);
         $this->assertNotNull($user->email_verified_at);
         $this->assertAuthenticatedAs($user);
         $this->assertGreaterThan(0, $user->permissions()->count());
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'user.google_created',
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
+        ]);
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'auth.login',
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
+        ]);
+    }
+
+    public function test_google_callback_creates_first_google_user_as_super_admin(): void
+    {
+        config()->set('services.google.client_id', 'test-client-id');
+        config()->set('services.google.client_secret', 'test-client-secret');
+        config()->set('services.google.redirect', 'http://localhost:8000/auth-google-callback');
+
+        $googleUser = (new SocialiteUser)
+            ->setRaw(['email_verified' => true])
+            ->map([
+                'id' => 'google-first-admin',
+                'email' => 'first.admin@sph.test',
+                'name' => 'Admin Pertama',
+            ]);
+
+        $provider = Mockery::mock();
+        $provider->shouldReceive('user')->once()->andReturn($googleUser);
+
+        Socialite::shouldReceive('driver')
+            ->once()
+            ->with('google')
+            ->andReturn($provider);
+
+        $response = $this->get(route('login.google.callback'));
+
+        $response->assertRedirect(route('dashboard'));
+
+        $user = User::query()->where('email', 'first.admin@sph.test')->firstOrFail();
+
+        $this->assertSame(User::ROLE_SUPER_ADMIN, $user->role);
+        $this->assertAuthenticatedAs($user);
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'user.google_created',
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
+        ]);
     }
 }

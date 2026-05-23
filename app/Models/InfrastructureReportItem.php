@@ -69,7 +69,7 @@ class InfrastructureReportItem extends Model
     public function getStockStatusLabelAttribute(): string
     {
         if ($this->is_critical_stock) {
-            return $this->good_units === 0 ? 'Stok habis' : 'Stok kritis';
+            return $this->good_units === 0 ? 'Semua unit rusak' : 'Kondisi kritis';
         }
 
         if ($this->damaged_units > 0) {

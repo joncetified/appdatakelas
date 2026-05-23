@@ -57,18 +57,18 @@
 
                 <div>
                     <label for="student_count" class="label">Jumlah Siswa</label>
-                    <input id="student_count" name="student_count" type="number" min="0" value="{{ old('student_count', $report->student_count) }}" class="field mt-2" required>
+                    <input id="student_count" name="student_count" type="number" min="0" max="1000" value="{{ old('student_count', $report->student_count) }}" class="field mt-2" required>
                 </div>
 
                 <div>
                     <label for="teacher_count" class="label">Jumlah Guru</label>
-                    <input id="teacher_count" name="teacher_count" type="number" min="0" value="{{ old('teacher_count', $report->teacher_count) }}" class="field mt-2" required>
+                    <input id="teacher_count" name="teacher_count" type="number" min="0" max="100" value="{{ old('teacher_count', $report->teacher_count) }}" class="field mt-2" required>
                 </div>
             </div>
 
             <div class="mt-5">
                 <label for="notes" class="label">Catatan Umum</label>
-                <textarea id="notes" name="notes" rows="4" class="field mt-2">{{ old('notes', $report->notes) }}</textarea>
+                <textarea id="notes" name="notes" rows="4" maxlength="1000" class="field mt-2">{{ old('notes', $report->notes) }}</textarea>
             </div>
         </section>
 
@@ -98,6 +98,7 @@
                                     data-field-id="item_name"
                                     type="text"
                                     value="{{ $row['item_name'] ?? '' }}"
+                                    maxlength="120"
                                     class="field mt-2"
                                     placeholder="Contoh: Komputer"
                                 >
@@ -115,6 +116,7 @@
                                     data-field-id="total_units"
                                     type="number"
                                     min="1"
+                                    max="10000"
                                     value="{{ $row['total_units'] ?? '' }}"
                                     class="field mt-2"
                                 >
@@ -132,6 +134,7 @@
                                     data-field-id="damaged_units"
                                     type="number"
                                     min="0"
+                                    max="10000"
                                     value="{{ $row['damaged_units'] ?? 0 }}"
                                     class="field mt-2"
                                 >
@@ -149,6 +152,7 @@
                                 data-field-name="notes"
                                 data-field-id="notes"
                                 rows="3"
+                                maxlength="500"
                                 class="field mt-2"
                                 placeholder="Keterangan tambahan jika ada kerusakan atau kebutuhan perbaikan"
                             >{{ $row['notes'] ?? '' }}</textarea>
@@ -177,6 +181,7 @@
                                 data-field-name="item_name"
                                 data-field-id="item_name"
                                 type="text"
+                                maxlength="120"
                                 class="field mt-2"
                                 placeholder="Contoh: Komputer"
                             >
@@ -191,6 +196,7 @@
                                 data-field-id="total_units"
                                 type="number"
                                 min="1"
+                                max="10000"
                                 class="field mt-2"
                             >
                         </div>
@@ -204,6 +210,7 @@
                                 data-field-id="damaged_units"
                                 type="number"
                                 min="0"
+                                max="10000"
                                 value="0"
                                 class="field mt-2"
                             >
@@ -218,6 +225,7 @@
                             data-field-name="notes"
                             data-field-id="notes"
                             rows="3"
+                            maxlength="500"
                             class="field mt-2"
                             placeholder="Keterangan tambahan jika ada kerusakan atau kebutuhan perbaikan"
                         ></textarea>

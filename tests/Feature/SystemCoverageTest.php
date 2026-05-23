@@ -8,10 +8,13 @@ use App\Models\InfrastructureReport;
 use App\Models\SiteSetting;
 use App\Models\User;
 use App\Providers\AppServiceProvider;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class SystemCoverageTest extends TestCase
@@ -61,7 +64,7 @@ class SystemCoverageTest extends TestCase
             route('admin.classrooms.index'),
             route('admin.classrooms.create'),
             route('admin.permissions.index'),
-            route('admin.permissions.edit', $leader),
+            route('admin.permissions.edit', User::ROLE_CLASS_LEADER),
             route('admin.settings.edit'),
             route('admin.activity.index'),
             route('admin.trash.index'),
@@ -73,7 +76,89 @@ class SystemCoverageTest extends TestCase
         }
     }
 
-    public function test_dashboard_and_report_detail_highlight_critical_stock(): void
+    public function test_classroom_edit_page_is_accessible_from_action_button(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $leader = User::factory()->classLeader()->create();
+        $homeroomTeacher = User::factory()->homeroomTeacher()->create();
+        $classroom = Classroom::factory()->create([
+            'name' => 'Lab Komputer 1',
+            'leader_id' => $leader->id,
+            'homeroom_teacher_id' => $homeroomTeacher->id,
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.classrooms.edit', $classroom))
+            ->assertOk()
+            ->assertSee('Edit Kelas')
+            ->assertSee('Lab Komputer 1');
+    }
+
+    public function test_class_leader_and_homeroom_teacher_can_open_report_detail_from_dashboard_links(): void
+    {
+        $leader = User::factory()->classLeader()->create();
+        $homeroomTeacher = User::factory()->homeroomTeacher()->create();
+        $classroom = Classroom::factory()->create([
+            'name' => 'Lab Komputer 1',
+            'leader_id' => $leader->id,
+            'homeroom_teacher_id' => $homeroomTeacher->id,
+        ]);
+        $report = InfrastructureReport::factory()->create([
+            'classroom_id' => $classroom->id,
+            'reported_by_id' => $leader->id,
+            'status' => InfrastructureReport::STATUS_SUBMITTED,
+        ]);
+        $report->items()->create([
+            'item_name' => 'Komputer',
+            'total_units' => 10,
+            'damaged_units' => 2,
+            'notes' => 'Perlu dicek.',
+        ]);
+
+        $this->actingAs($leader)
+            ->get(route('reports.show', $report))
+            ->assertOk()
+            ->assertSee('Lab Komputer 1')
+            ->assertSee('Komputer');
+
+        $this->actingAs($homeroomTeacher)
+            ->get(route('reports.show', $report))
+            ->assertOk()
+            ->assertSee('Lab Komputer 1')
+            ->assertSee('Verifikasi');
+    }
+
+    public function test_user_management_shows_login_status_separately_from_email_verification(): void
+    {
+        $raka = User::factory()->superAdmin()->create([
+            'name' => 'Raka Pratama',
+            'email' => 'raka@sekolah.test',
+        ]);
+
+        $other = User::factory()->classLeader()->create([
+            'name' => 'Ketua Tidak Login',
+            'email' => 'ketua.tidak.login@sekolah.test',
+        ]);
+
+        DB::table('sessions')->insert([
+            'id' => 'raka-active-session',
+            'user_id' => $raka->id,
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'Feature test',
+            'payload' => '',
+            'last_activity' => now()->timestamp,
+        ]);
+
+        $response = $this->actingAs($raka)->get(route('admin.users.index'));
+
+        $response->assertOk();
+        $response->assertSee('Email terverifikasi');
+        $response->assertSeeInOrder(['Raka Pratama', 'Sedang login']);
+        $response->assertSeeInOrder(['Ketua Tidak Login', 'Tidak login']);
+        $this->assertTrue($other->hasVerifiedEmail());
+    }
+
+    public function test_dashboard_and_report_detail_highlight_critical_infrastructure_items(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();
         $leader = User::factory()->classLeader()->create();
@@ -97,14 +182,14 @@ class SystemCoverageTest extends TestCase
         $this->actingAs($superAdmin)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Stok Kritis')
+            ->assertSee('Kondisi Kritis')
             ->assertSee('Proyektor');
 
         $this->actingAs($superAdmin)
             ->get(route('reports.show', $report))
             ->assertOk()
-            ->assertSee('Stok Kritis')
-            ->assertSee('Stok kritis');
+            ->assertSee('Kondisi Kritis')
+            ->assertSee('Kondisi kritis');
     }
 
     public function test_workspace_header_has_ui_scale_toggle(): void
@@ -137,6 +222,48 @@ class SystemCoverageTest extends TestCase
             'subject_id' => $user->id,
             'causer_id' => $user->id,
         ]);
+    }
+
+    public function test_login_ignores_stale_intended_url_and_goes_to_dashboard(): void
+    {
+        $user = User::factory()->admin()->create([
+            'email' => 'login.redirect@sekolah.test',
+        ]);
+
+        $response = $this
+            ->withSession(['url.intended' => route('reports.index')])
+            ->post(route('login.store'), [
+                'login' => 'login.redirect@sekolah.test',
+                'password' => 'password',
+            ]);
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_super_admin_cannot_promote_another_user_to_super_admin(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $manager = User::factory()->manager()->create([
+            'email' => 'manager.promote@sekolah.test',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.users.edit', $manager))
+            ->assertOk()
+            ->assertDontSee('value="'.User::ROLE_SUPER_ADMIN.'"', false);
+
+        $response = $this->actingAs($superAdmin)->put(route('admin.users.update', $manager), [
+            'name' => $manager->name,
+            'email' => $manager->email,
+            'whatsapp_number' => $manager->whatsapp_number,
+            'role' => User::ROLE_SUPER_ADMIN,
+            'password' => '',
+            'password_confirmation' => '',
+        ]);
+
+        $response->assertSessionHasErrors('role');
+        $this->assertSame(User::ROLE_MANAGER, $manager->refresh()->role);
     }
 
     public function test_super_admin_can_update_site_settings(): void
@@ -245,8 +372,8 @@ SVG),
         $admin = User::factory()->admin()->create();
 
         $csv = implode("\n", [
-            'name,email,role,whatsapp_number,permissions,deleted_at',
-            'Diubah,superadmin@sekolah.test,admin,081200000000,dashboard.view,',
+            'name,email,role,whatsapp_number,deleted_at',
+            'Diubah,superadmin@sekolah.test,admin,081200000000,',
         ]);
 
         $file = UploadedFile::fake()->createWithContent('users.csv', $csv);
@@ -271,8 +398,8 @@ SVG),
         ]);
 
         $csv = implode("\n", [
-            'name,email,role,whatsapp_number,permissions,deleted_at',
-            'Akun Turun,superadmin@sekolah.test,admin,081200000000,dashboard.view,',
+            'name,email,role,whatsapp_number,deleted_at',
+            'Akun Turun,superadmin@sekolah.test,admin,081200000000,',
         ]);
 
         $file = UploadedFile::fake()->createWithContent('users.csv', $csv);
@@ -321,15 +448,32 @@ SVG),
         $superAdmin = User::factory()->superAdmin()->create();
         $manager = User::factory()->manager()->create();
 
-        $response = $this->actingAs($superAdmin)->put(route('admin.permissions.update', $manager), [
+        $response = $this->actingAs($superAdmin)->put(route('admin.permissions.update', User::ROLE_MANAGER), [
             'permissions' => [],
         ]);
 
         $response->assertRedirect(route('admin.permissions.index'));
 
+        $this->assertSame([], User::permissionSlugsForRole(User::ROLE_MANAGER));
+
         $this->actingAs($manager)
             ->get(route('dashboard'))
             ->assertForbidden();
+    }
+
+    public function test_permission_index_lists_roles_instead_of_user_accounts(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        User::factory()->classLeader()->create([
+            'name' => 'Akun Ketua Personal',
+        ]);
+
+        $response = $this->actingAs($superAdmin)->get(route('admin.permissions.index'));
+
+        $response->assertOk();
+        $response->assertSee('Ketua Kelas');
+        $response->assertSee('akun memakai role ini');
+        $response->assertDontSee('Akun Ketua Personal');
     }
 
     public function test_empty_permission_checklist_stays_blocked_after_application_reboots(): void
@@ -337,7 +481,7 @@ SVG),
         $superAdmin = User::factory()->superAdmin()->create();
         $manager = User::factory()->manager()->create();
 
-        $this->actingAs($superAdmin)->put(route('admin.permissions.update', $manager), [
+        $this->actingAs($superAdmin)->put(route('admin.permissions.update', User::ROLE_MANAGER), [
             'permissions' => [],
         ])->assertRedirect(route('admin.permissions.index'));
 
@@ -345,7 +489,7 @@ SVG),
 
         $manager = User::query()->where('email', $manager->email)->firstOrFail();
 
-        $this->assertSame(0, $manager->permissions()->count());
+        $this->assertSame([], User::permissionSlugsForRole(User::ROLE_MANAGER));
 
         $this->actingAs($manager)
             ->get(route('dashboard'))
@@ -367,7 +511,7 @@ SVG),
             ->assertForbidden();
 
         $this->actingAs($admin)
-            ->get(route('admin.permissions.edit', $manager))
+            ->get(route('admin.permissions.edit', User::ROLE_MANAGER))
             ->assertForbidden();
     }
 
@@ -386,26 +530,32 @@ SVG),
         $response->assertForbidden();
     }
 
-    public function test_self_registration_creates_unverified_account(): void
+    public function test_public_registration_creates_unverified_class_leader_and_sends_verification_link(): void
     {
+        Notification::fake();
         User::factory()->superAdmin()->create();
 
-        $response = $this->post(route('register.store'), [
+        $this->get('/register')->assertOk();
+
+        $response = $this->post('/register', [
             'name' => 'Ketua Mandiri',
             'email' => 'ketua.mandiri@sekolah.test',
             'whatsapp_number' => '081255500000',
-            'role' => User::ROLE_CLASS_LEADER,
             'password' => 'Password123!',
             'password_confirmation' => 'Password123!',
         ]);
 
         $response->assertRedirect(route('verification.notice'));
-        $this->assertAuthenticated();
         $this->assertDatabaseHas('users', [
             'email' => 'ketua.mandiri@sekolah.test',
             'role' => User::ROLE_CLASS_LEADER,
-            'email_verified_at' => null,
         ]);
+
+        $user = User::query()->where('email', 'ketua.mandiri@sekolah.test')->firstOrFail();
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertNull($user->email_verified_at);
+        Notification::assertSentTo($user, VerifyEmail::class);
     }
 
     public function test_whatsapp_password_reset_redirects_to_support_number(): void
@@ -461,8 +611,8 @@ SVG),
         $superAdmin = User::factory()->superAdmin()->create();
 
         $csv = implode("\n", [
-            'name,email,role,whatsapp_number,permissions,deleted_at',
-            'Ketua Baru,ketua.import@sekolah.test,ketua_kelas,081200000321,,',
+            'name,email,role,whatsapp_number,deleted_at',
+            'Ketua Baru,ketua.import@sekolah.test,ketua_kelas,081200000321,',
         ]);
 
         $file = UploadedFile::fake()->createWithContent('users.csv', $csv);
@@ -608,8 +758,8 @@ SVG),
         $trashedUser->delete();
 
         $csv = implode("\n", [
-            'name,email,role,whatsapp_number,permissions,deleted_at',
-            'Akun Dipulihkan,restore.import@sekolah.test,manager,081200000999,,',
+            'name,email,role,whatsapp_number,deleted_at',
+            'Akun Dipulihkan,restore.import@sekolah.test,manager,081200000999,',
         ]);
 
         $file = UploadedFile::fake()->createWithContent('users.csv', $csv);

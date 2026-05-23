@@ -364,8 +364,8 @@ class InfrastructureWorkflowTest extends TestCase
         ]);
 
         $csv = implode("\n", [
-            'name,email,role,whatsapp_number,permissions,deleted_at',
-            'Nama Baru,lama@sekolah.test,ketua_kelas,081200000000,reports.view|reports.create,',
+            'name,email,role,whatsapp_number,deleted_at',
+            'Nama Baru,lama@sekolah.test,ketua_kelas,081200000000,',
         ]);
 
         $file = UploadedFile::fake()->createWithContent('users.csv', $csv);

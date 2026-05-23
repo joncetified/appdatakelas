@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\ActivityService;
+use App\Support\InputRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -20,22 +23,40 @@ class UserManagementController extends Controller
     public function index(Request $request): View
     {
         $search = trim($request->string('q')->toString());
+        $roleSearch = str_replace(' ', '_', strtolower($search));
+        $matchingRoles = collect(User::roleOptions())
+            ->filter(fn (string $label, string $role): bool => str_contains(strtolower($label), strtolower($search))
+                || str_contains(strtolower(str_replace('_', ' ', $role)), strtolower($search))
+                || str_contains($role, $roleSearch))
+            ->keys()
+            ->all();
+        $activeUserIds = $this->activeSessionUserIds();
+
+        if ($request->user()) {
+            $activeUserIds[] = $request->user()->id;
+            $activeUserIds = array_values(array_unique($activeUserIds));
+        }
 
         return view('admin.users.index', [
             'users' => User::query()
                 ->with(['ledClassroom', 'homeroomClassrooms', 'createdByUser', 'updatedByUser'])
-                ->when($search !== '', function ($query) use ($search): void {
-                    $query->where(function ($builder) use ($search): void {
+                ->when($search !== '', function ($query) use ($search, $matchingRoles): void {
+                    $query->where(function ($builder) use ($search, $matchingRoles): void {
                         $builder
                             ->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%")
                             ->orWhere('role', 'like', "%{$search}%");
+
+                        if ($matchingRoles !== []) {
+                            $builder->orWhereIn('role', $matchingRoles);
+                        }
                     });
                 })
                 ->orderBy('role')
                 ->orderBy('name')
                 ->paginate(10)
                 ->withQueryString(),
+            'activeUserIds' => $activeUserIds,
         ]);
     }
 
@@ -59,7 +80,7 @@ class UserManagementController extends Controller
             ...$validated,
             'email_verified_at' => User::roleRequiresEmailVerification($validated['role']) ? null : now(),
         ]);
-        $user->syncPermissionsBySlugs(User::defaultPermissionSlugsForRole($user->role));
+        $user->syncPermissionsBySlugs(User::permissionSlugsForRole($user->role));
 
         $this->activityService->log(
             action: 'user.created',
@@ -77,7 +98,7 @@ class UserManagementController extends Controller
 
         return view('admin.users.form', [
             'user' => $user,
-            'roleOptions' => User::manageableRoleOptionsFor($request->user()),
+            'roleOptions' => $this->roleOptionsForForm($request->user(), $user),
             'pageTitle' => 'Edit Pengguna',
             'submitLabel' => 'Perbarui Pengguna',
             'action' => route('admin.users.update', $user),
@@ -118,7 +139,7 @@ class UserManagementController extends Controller
         $user->update($validated);
 
         if ($roleChanged) {
-            $user->syncPermissionsBySlugs(User::defaultPermissionSlugsForRole($user->role));
+            $user->syncPermissionsBySlugs(User::permissionSlugsForRole($user->role));
         }
 
         $this->activityService->log(
@@ -159,18 +180,62 @@ class UserManagementController extends Controller
     {
         $allowedRoles = array_keys(User::manageableRoleOptionsFor($actor));
 
+        if ($user?->isSuperAdmin()) {
+            $allowedRoles[] = User::ROLE_SUPER_ADMIN;
+            $allowedRoles = array_values(array_unique($allowedRoles));
+        }
+
         abort_if($allowedRoles === [], 403);
 
         $passwordRules = $user
-            ? ['nullable', 'string', 'min:8', 'confirmed']
-            : ['required', 'string', 'min:8', 'confirmed'];
+            ? InputRules::password(false)
+            : InputRules::password();
 
         return $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => InputRules::humanName(),
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user)],
-            'whatsapp_number' => ['nullable', 'string', 'max:30'],
+            'whatsapp_number' => InputRules::phone(minDigits: 10),
             'role' => ['required', Rule::in($allowedRoles)],
             'password' => $passwordRules,
         ]);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function roleOptionsForForm(User $actor, ?User $user = null): array
+    {
+        $options = User::manageableRoleOptionsFor($actor);
+
+        if ($user?->isSuperAdmin()) {
+            return [User::ROLE_SUPER_ADMIN => User::roleOptions()[User::ROLE_SUPER_ADMIN]] + $options;
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function activeSessionUserIds(): array
+    {
+        $sessionTable = (string) config('session.table', 'sessions');
+
+        if (! Schema::hasTable($sessionTable)) {
+            return [];
+        }
+
+        $threshold = now()
+            ->subMinutes((int) config('session.lifetime', 120))
+            ->timestamp;
+
+        return DB::table($sessionTable)
+            ->whereNotNull('user_id')
+            ->where('last_activity', '>=', $threshold)
+            ->pluck('user_id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 }

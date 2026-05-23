@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SiteSetting;
 use App\Services\ActivityService;
+use App\Support\InputRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -15,7 +16,7 @@ use Illuminate\View\View;
 
 class SiteSettingController extends Controller
 {
-    private const DEFAULT_LOGO_PATH = 'site/permata-harapan-logo.svg';
+    private const DEFAULT_LOGO_PATH = 'site/logo ph.png';
 
     public function __construct(
         private readonly ActivityService $activityService,
@@ -33,15 +34,15 @@ class SiteSettingController extends Controller
         $settings = SiteSetting::query()->firstOrFail();
 
         $validated = $request->validate([
-            'company_name' => ['required', 'string', 'max:255'],
-            'address' => ['nullable', 'string'],
-            'manager_name' => ['nullable', 'string', 'max:255'],
+            'company_name' => InputRules::brandName(),
+            'address' => InputRules::safeText(500),
+            'manager_name' => InputRules::humanName(80, false),
             'contact_email' => ['nullable', 'email', 'max:255'],
-            'contact_phone' => ['nullable', 'string', 'max:30'],
-            'contact_whatsapp' => ['nullable', 'string', 'max:30'],
-            'discord_webhook_url' => ['nullable', 'url'],
-            'google_recaptcha_site_key' => ['nullable', 'string'],
-            'google_recaptcha_secret_key' => ['nullable', 'string'],
+            'contact_phone' => InputRules::phone(),
+            'contact_whatsapp' => InputRules::phone(minDigits: 10),
+            'discord_webhook_url' => ['nullable', 'url', 'max:500'],
+            'google_recaptcha_site_key' => ['nullable', 'string', 'max:255', 'not_regex:/[<>]/'],
+            'google_recaptcha_secret_key' => ['nullable', 'string', 'max:255', 'not_regex:/[<>]/'],
             'logo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
             'remove_logo' => ['nullable', 'boolean'],
         ]);

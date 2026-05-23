@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Notifications\LoginOtpNotification;
 use App\Services\ActivityService;
-use App\Services\CaptchaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +24,6 @@ class AuthenticatedSessionController extends Controller
     private const OTP_MAX_ATTEMPTS = 5;
 
     public function __construct(
-        private readonly CaptchaService $captchaService,
         private readonly ActivityService $activityService,
     ) {}
 
@@ -38,7 +36,6 @@ class AuthenticatedSessionController extends Controller
         $needsInitialSetup = ! User::query()->exists();
 
         return view('auth.login', [
-            'captcha' => $this->captchaService->prepare($request),
             'needsInitialSetup' => $needsInitialSetup,
         ]);
     }
@@ -54,7 +51,6 @@ class AuthenticatedSessionController extends Controller
                 ]);
         }
 
-        $this->captchaService->validate($request);
         $request->merge([
             'login' => $request->input('login', $request->input('email')),
         ]);
@@ -108,7 +104,7 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('verification.notice')->with('success', 'Login berhasil, tetapi akun belum aktif. Verifikasi email terlebih dahulu.');
         }
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->route('dashboard');
     }
 
     public function createOtp(Request $request): View|RedirectResponse
@@ -124,6 +120,7 @@ class AuthenticatedSessionController extends Controller
         return view('auth.login-otp', [
             'email' => $pending['email'],
             'expiresAt' => $pending['expires_at'],
+            'validMinutes' => self::OTP_VALID_MINUTES,
         ]);
     }
 
@@ -179,8 +176,9 @@ class AuthenticatedSessionController extends Controller
             ->first();
 
         if (! $user) {
-            $isFirstUser = ! User::query()->exists();
-            $role = $isFirstUser ? User::ROLE_SUPER_ADMIN : User::ROLE_CLASS_LEADER;
+            $role = User::query()->exists()
+                ? User::ROLE_CLASS_LEADER
+                : User::ROLE_SUPER_ADMIN;
 
             $user = User::query()->create([
                 'name' => $googleUser->getName() ?: Str::before($email, '@'),
@@ -191,7 +189,17 @@ class AuthenticatedSessionController extends Controller
                 'role' => $role,
             ]);
 
-            $user->syncPermissionsBySlugs(User::defaultPermissionSlugsForRole($role));
+            $user->syncPermissionsBySlugs(User::permissionSlugsForRole($role));
+
+            $this->activityService->log(
+                action: 'user.google_created',
+                description: "{$user->email} otomatis dibuat dari login Google.",
+                subject: $user,
+                properties: [
+                    'role' => $role,
+                    'google_id' => $googleId,
+                ],
+            );
         }
 
         $updates = [
@@ -212,7 +220,7 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('verification.notice')->with('success', 'Login Google berhasil, tetapi akun belum aktif. Verifikasi email terlebih dahulu.');
         }
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->route('dashboard');
     }
 
     public function verifyOtp(Request $request): RedirectResponse
@@ -268,7 +276,7 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('verification.notice')->with('success', 'Akun terdaftar, tetapi belum aktif. Verifikasi email terlebih dahulu.');
         }
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->route('dashboard');
     }
 
     public function resendOtp(Request $request): RedirectResponse

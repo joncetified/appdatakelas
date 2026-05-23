@@ -4,12 +4,12 @@
     <section class="panel px-6 py-6 lg:px-8">
         <h2 class="text-3xl font-semibold text-slate-950">Atur Hak Akses</h2>
         <p class="mt-3 text-sm leading-6 text-slate-600">
-            Pengguna: <span class="font-semibold text-slate-950">{{ $user->name }}</span> | Role: {{ $user->role_label }}
+            Role: <span class="font-semibold text-slate-950">{{ $roleLabel }}</span>
         </p>
     </section>
 
     <section class="panel px-6 py-6 lg:px-8">
-        <form method="POST" action="{{ route('admin.permissions.update', $user) }}" class="space-y-6">
+        <form method="POST" action="{{ route('admin.permissions.update', $role) }}" class="space-y-6">
             @csrf
             @method('PUT')
 
@@ -24,7 +24,7 @@
                                     name="permissions[]"
                                     value="{{ $permission->id }}"
                                     class="mt-1 h-4 w-4 rounded border-slate-300"
-                                    @checked(in_array($permission->id, old('permissions', $user->permissions->pluck('id')->all()), true))
+                                    @checked(in_array($permission->id, old('permissions', $selectedPermissionIds), true))
                                 >
                                 <span>
                                     <span class="block text-sm font-semibold text-slate-950">{{ $permission->label }}</span>

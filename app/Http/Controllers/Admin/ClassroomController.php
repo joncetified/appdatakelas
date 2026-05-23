@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Classroom;
 use App\Models\User;
 use App\Services\ActivityService;
+use App\Support\InputRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -116,9 +117,9 @@ class ClassroomController extends Controller
     private function validatePayload(Request $request, ?Classroom $classroom = null): array
     {
         return $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique('classrooms')->ignore($classroom)],
-            'location' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'name' => [...InputRules::safeText(80, true), Rule::unique('classrooms')->ignore($classroom)],
+            'location' => InputRules::safeText(120),
+            'description' => InputRules::safeText(500),
             'leader_id' => [
                 'nullable',
                 'integer',
@@ -146,7 +147,7 @@ class ClassroomController extends Controller
                 $query->whereDoesntHave('ledClassroom');
 
                 if ($classroom?->leader_id) {
-                    $query->orWhereKey($classroom->leader_id);
+                    $query->orWhere('id', $classroom->leader_id);
                 }
             })
             ->orderBy('name')
@@ -161,7 +162,7 @@ class ClassroomController extends Controller
                 $query->whereDoesntHave('homeroomClassrooms');
 
                 if ($classroom?->homeroom_teacher_id) {
-                    $query->orWhereKey($classroom->homeroom_teacher_id);
+                    $query->orWhere('id', $classroom->homeroom_teacher_id);
                 }
             })
             ->orderBy('name')

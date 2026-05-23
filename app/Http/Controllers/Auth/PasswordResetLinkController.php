@@ -87,6 +87,7 @@ class PasswordResetLinkController extends Controller
         return view('auth.forgot-password-otp', [
             'email' => $pending['email'],
             'expiresAt' => $pending['expires_at'],
+            'validMinutes' => self::OTP_VALID_MINUTES,
         ]);
     }
 

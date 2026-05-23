@@ -195,7 +195,7 @@
                 <img src="{{ asset($brandLogoPath) }}" alt="{{ $brandName }}">
                 <div>
                     <p class="eyebrow">{{ $brandName }}</p>
-                    <h1>{{ $report->classroom->name }}</h1>
+                    <h1>{{ $report->classroom?->name ?? 'Kelas tidak tersedia' }}</h1>
                 </div>
             </div>
             <div class="helper">
@@ -237,7 +237,7 @@
             </article>
             <article class="meta-card">
                 <p class="meta-label">Pelapor</p>
-                <p class="meta-value">{{ $report->reporter->name }}</p>
+                <p class="meta-value">{{ $report->reporter?->name ?? '-' }}</p>
             </article>
             <article class="meta-card">
                 <p class="meta-label">Diverifikasi Oleh</p>
@@ -249,7 +249,7 @@
             </article>
             <article class="meta-card">
                 <p class="meta-label">Wali Kelas</p>
-                <p class="meta-value">{{ $report->classroom->homeroomTeacher?->name ?? '-' }}</p>
+                <p class="meta-value">{{ $report->classroom?->homeroomTeacher?->name ?? '-' }}</p>
             </article>
         </section>
 

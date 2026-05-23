@@ -60,6 +60,10 @@ trait HasAuditTrail
 
     private static function hasColumn(Model $model, string $column): bool
     {
-        return Schema::hasColumn($model->getTable(), $column);
+        try {
+            return Schema::hasColumn($model->getTable(), $column);
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

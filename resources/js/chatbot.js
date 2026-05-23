@@ -11,20 +11,22 @@ const normalizeText = (value) => escapeHtml(value).replaceAll('\n', '<br>');
 const normalizeList = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
 
 const buildShell = (brandName, botName) => `
-    <div class="pointer-events-none fixed bottom-5 right-4 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
-        <section data-chatbot-panel class="pointer-events-auto hidden w-[min(92vw,24rem)] overflow-hidden rounded-[28px] border border-white/80 bg-white/95 shadow-[0_24px_80px_-35px_rgba(15,23,42,0.55)] backdrop-blur-xl">
-            <div class="flex items-start justify-between gap-4 bg-slate-950 px-5 py-4 text-white">
-                <div>
+    <div class="pointer-events-none fixed bottom-4 right-3 z-[70] flex max-w-[calc(100vw-1.5rem)] flex-col items-end gap-3 sm:bottom-6 sm:right-6">
+        <button type="button" data-chatbot-backdrop class="pointer-events-auto fixed inset-0 hidden bg-slate-950/35" aria-label="Tutup asisten"></button>
+
+        <section data-chatbot-panel class="pointer-events-auto fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] top-[max(0.75rem,env(safe-area-inset-top))] hidden max-h-[calc(100dvh-1.5rem)] flex-col overflow-hidden rounded-2xl border border-white/80 bg-white/95 shadow-[0_24px_80px_-35px_rgba(15,23,42,0.55)] backdrop-blur-xl sm:static sm:h-[min(42rem,calc(100dvh-7rem))] sm:w-[min(92vw,24rem)] sm:max-w-[24rem] sm:rounded-[28px]">
+            <div class="flex shrink-0 items-start justify-between gap-4 bg-slate-950 px-5 py-4 text-white">
+                <div class="min-w-0">
                     <p class="text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-300">Asisten PH</p>
                     <h2 class="mt-2 text-lg font-semibold">${escapeHtml(botName)}</h2>
-                    <p class="mt-1 text-xs leading-5 text-white/70">Teman bantu digital untuk ${escapeHtml(brandName)}. Tulis pertanyaan bebas tanpa menu pilihan.</p>
+                    <p class="mt-1 min-w-0 text-xs leading-5 text-white/70 [overflow-wrap:anywhere]">Teman bantu digital untuk ${escapeHtml(brandName)}. Tulis pertanyaan bebas tanpa menu pilihan.</p>
                 </div>
-                <button type="button" data-chatbot-close class="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-white/80 transition hover:bg-white/10 hover:text-white">
-                    Tutup
+                <button type="button" data-chatbot-close class="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 text-xl font-semibold leading-none text-white transition hover:bg-white/15" aria-label="Tutup asisten">
+                    &times;
                 </button>
             </div>
-            <div data-chatbot-messages class="chatbot-scrollbar max-h-[58vh] space-y-3 overflow-y-auto bg-[linear-gradient(180deg,#f8fafc_0%,#fffaf0_100%)] px-4 py-4"></div>
-            <form data-chatbot-form class="border-t border-slate-200 bg-white px-4 py-4">
+            <div data-chatbot-messages class="chatbot-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[linear-gradient(180deg,#f8fafc_0%,#fffaf0_100%)] px-4 py-4"></div>
+            <form data-chatbot-form class="shrink-0 border-t border-slate-200 bg-white px-4 py-4">
                 <label for="chatbot-input" class="sr-only">Ketik pertanyaan</label>
                 <div class="flex items-end gap-3">
                     <input id="chatbot-input" data-chatbot-input type="text" class="field min-w-0 flex-1" placeholder="Tanyakan apa saja...">
@@ -37,7 +39,7 @@ const buildShell = (brandName, botName) => `
 
         <button type="button" data-chatbot-open class="pointer-events-auto inline-flex items-center gap-3 rounded-full bg-slate-950 px-5 py-4 text-sm font-semibold text-white shadow-[0_18px_48px_-24px_rgba(15,23,42,0.65)] transition hover:-translate-y-0.5 hover:bg-slate-800">
             <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-400/20 text-base text-emerald-300">PH</span>
-            <span>${escapeHtml(botName)}</span>
+            <span class="min-w-0 [overflow-wrap:anywhere]">${escapeHtml(botName)}</span>
         </button>
     </div>
 `;
@@ -59,15 +61,25 @@ const renderMessage = (message) => {
             `,
         )
         .join('');
+    const suggestions = normalizeList(message.suggestions)
+        .map(
+            (suggestion) => `
+                <button type="button" data-chatbot-suggestion="${escapeHtml(suggestion)}" class="btn-secondary px-3 py-2 text-xs">
+                    ${escapeHtml(suggestion)}
+                </button>
+            `,
+        )
+        .join('');
 
     return `
-        <article class="${alignClass}">
-            <p class="mb-1 text-[11px] font-semibold uppercase tracking-[0.24em] ${labelClass}">
+        <article class="min-w-0 ${alignClass}">
+            <p class="mb-1 min-w-0 text-[11px] font-semibold uppercase tracking-[0.24em] [overflow-wrap:anywhere] ${labelClass}">
                 ${isAssistant ? escapeHtml(message.assistantLabel || 'Asisten PH') : 'Anda'}
             </p>
-            <div class="rounded-[22px] px-4 py-3 text-sm leading-6 ${bubbleClass}">
-                <p>${normalizeText(message.text)}</p>
+            <div class="min-w-0 rounded-[22px] px-4 py-3 text-sm leading-6 [overflow-wrap:anywhere] ${bubbleClass}">
+                <p class="min-w-0 [overflow-wrap:anywhere]">${normalizeText(message.text)}</p>
                 ${actions ? `<div class="mt-3 flex flex-wrap gap-2">${actions}</div>` : ''}
+                ${suggestions ? `<div class="mt-3 flex flex-wrap gap-2">${suggestions}</div>` : ''}
             </div>
         </article>
     `;
@@ -123,6 +135,7 @@ export const initializeSupportChatbot = () => {
     root.innerHTML = buildShell(config.brandName || 'Aplikasi', config.botName || 'Asisten PH');
 
     const panel = root.querySelector('[data-chatbot-panel]');
+    const backdrop = root.querySelector('[data-chatbot-backdrop]');
     const openButton = root.querySelector('[data-chatbot-open]');
     const closeButton = root.querySelector('[data-chatbot-close]');
     const form = root.querySelector('[data-chatbot-form]');
@@ -130,7 +143,7 @@ export const initializeSupportChatbot = () => {
     const submitButton = root.querySelector('[data-chatbot-submit]');
     const messages = root.querySelector('[data-chatbot-messages]');
 
-    if (!panel || !openButton || !closeButton || !form || !input || !submitButton || !messages) {
+    if (!panel || !backdrop || !openButton || !closeButton || !form || !input || !submitButton || !messages) {
         return;
     }
 
@@ -165,7 +178,10 @@ export const initializeSupportChatbot = () => {
 
     const setOpen = (value) => {
         panel.classList.toggle('hidden', !value);
+        panel.classList.toggle('flex', value);
+        backdrop.classList.toggle('hidden', !value);
         openButton.classList.toggle('hidden', value);
+        document.body.classList.toggle('overflow-hidden', value && window.matchMedia('(max-width: 639px)').matches);
 
         if (value) {
             input.focus();
@@ -202,6 +218,7 @@ export const initializeSupportChatbot = () => {
 
             pushMessage('assistant', response.data?.answer || 'Saya belum punya jawaban untuk itu.', {
                 actions: response.data?.actions,
+                suggestions: response.data?.suggestions,
             });
         } catch (error) {
             pushMessage('assistant', `${config.botName || 'Asisten PH'} lagi belum bisa menjawab sekarang. Coba lagi sebentar atau hubungi admin.`);
@@ -214,6 +231,21 @@ export const initializeSupportChatbot = () => {
 
     openButton.addEventListener('click', () => setOpen(true));
     closeButton.addEventListener('click', () => setOpen(false));
+    backdrop.addEventListener('click', () => setOpen(false));
+    messages.addEventListener('click', (event) => {
+        const suggestion = event.target.closest('[data-chatbot-suggestion]');
+
+        if (!suggestion) {
+            return;
+        }
+
+        sendMessage(suggestion.getAttribute('data-chatbot-suggestion') || '');
+    });
+    window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            setOpen(false);
+        }
+    });
 
     form.addEventListener('submit', (event) => {
         event.preventDefault();

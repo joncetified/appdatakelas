@@ -6,7 +6,7 @@
         <h2 class="mt-3 text-3xl font-semibold text-slate-950">Masukkan Kode OTP</h2>
         <p class="mt-3 text-sm leading-6 text-slate-600">
             Kode OTP reset password sudah dikirim ke email <span class="font-semibold text-slate-950">{{ $email }}</span>.
-            Kode berlaku sampai {{ \Carbon\Carbon::createFromTimestamp($expiresAt)->translatedFormat('H:i') }}.
+            Kode berlaku selama {{ $validMinutes ?? 10 }} menit sejak email dikirim.
         </p>
 
         @if (session('success'))

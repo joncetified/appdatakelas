@@ -6,6 +6,7 @@ use App\Models\Classroom;
 use App\Models\InfrastructureReport;
 use App\Models\User;
 use App\Services\ActivityService;
+use App\Support\InputRules;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,13 +52,11 @@ class InfrastructureReportController extends Controller
 
     public function exportExcel(Request $request): Response
     {
-        $export = $this->reportExportData($request);
-        $filename = 'laporan_infrastruktur_'.now()->format('Ymd_His').'.xls';
-
-        return response()
-            ->view('reports.export-excel', $export)
-            ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
-            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+        return $this->excelViewDownload(
+            'laporan_infrastruktur_'.now()->format('Ymd_His').'.xls',
+            'reports.export-excel',
+            $this->reportExportData($request),
+        );
     }
 
     public function exportPdf(Request $request): View
@@ -80,13 +79,11 @@ class InfrastructureReportController extends Controller
 
     public function exportDetailExcel(Request $request, InfrastructureReport $report): Response
     {
-        $export = $this->singleReportExportData($request, $report);
-        $filename = 'laporan_infrastruktur_'.$report->id.'_'.now()->format('Ymd_His').'.xls';
-
-        return response()
-            ->view('reports.export-detail-excel', $export)
-            ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
-            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+        return $this->excelViewDownload(
+            'laporan_infrastruktur_'.$report->id.'_'.now()->format('Ymd_His').'.xls',
+            'reports.export-detail-excel',
+            $this->singleReportExportData($request, $report),
+        );
     }
 
     public function exportDetailPdf(Request $request, InfrastructureReport $report): View
@@ -344,11 +341,11 @@ class InfrastructureReportController extends Controller
             return;
         }
 
-        if ($user->isClassLeader() && $report->classroom->leader_id === $user->id) {
+        if ($user->isClassLeader() && $report->classroom?->leader_id === $user->id) {
             return;
         }
 
-        if ($user->isHomeroomTeacher() && $report->classroom->homeroom_teacher_id === $user->id) {
+        if ($user->isHomeroomTeacher() && $report->classroom?->homeroom_teacher_id === $user->id) {
             return;
         }
 
@@ -362,7 +359,7 @@ class InfrastructureReportController extends Controller
         }
 
         return $user->isHomeroomTeacher()
-            && $report->classroom->homeroom_teacher_id === $user->id
+            && $report->classroom?->homeroom_teacher_id === $user->id
             && $report->status !== InfrastructureReport::STATUS_VERIFIED;
     }
 
@@ -373,13 +370,54 @@ class InfrastructureReportController extends Controller
         }
 
         return $user->isClassLeader()
-            && $report->classroom->leader_id === $user->id
+            && $report->classroom?->leader_id === $user->id
             && $report->isEditable();
     }
 
     private function canExportReports(User $user): bool
     {
         return $user->isSuperAdmin() || $user->isAdmin() || $user->isManager();
+    }
+
+    /**
+     * @param  list<array<int, mixed>>  $rows
+     */
+    private function csvDownload(string $filename, array $rows): Response
+    {
+        $output = fopen('php://temp', 'r+');
+
+        if ($output === false) {
+            return response('', 500);
+        }
+
+        fwrite($output, "\xEF\xBB\xBF");
+
+        foreach ($rows as $row) {
+            fputcsv($output, $row, ';');
+        }
+
+        rewind($output);
+        $csv = stream_get_contents($output) ?: '';
+        fclose($output);
+
+        return response($csv, 200, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function excelViewDownload(string $filename, string $view, array $data): Response
+    {
+        $html = "\xEF\xBB\xBF".view($view, $data)->render();
+
+        return response($html, 200, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control' => 'max-age=0',
+        ]);
     }
 
     /**
@@ -523,7 +561,7 @@ class InfrastructureReportController extends Controller
             ],
             'student_count' => ['required', 'integer', 'min:0', 'max:1000'],
             'teacher_count' => ['required', 'integer', 'min:0', 'max:100'],
-            'notes' => ['nullable', 'string'],
+            'notes' => InputRules::safeText(1000),
         ]);
 
         $items = collect($request->input('items', []))
@@ -546,10 +584,10 @@ class InfrastructureReportController extends Controller
             ['items' => $items->all()],
             [
                 'items' => ['required', 'array', 'min:1'],
-                'items.*.item_name' => ['required', 'string', 'max:255'],
+                'items.*.item_name' => InputRules::safeText(120, true),
                 'items.*.total_units' => ['required', 'integer', 'min:1'],
                 'items.*.damaged_units' => ['required', 'integer', 'min:0'],
-                'items.*.notes' => ['nullable', 'string'],
+                'items.*.notes' => InputRules::safeText(500),
             ],
         );
 

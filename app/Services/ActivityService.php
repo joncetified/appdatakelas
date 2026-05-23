@@ -17,7 +17,7 @@ class ActivityService
      */
     public function log(string $action, string $description, ?Model $subject = null, array $properties = []): void
     {
-        if (! Schema::hasTable('activity_logs')) {
+        if (! $this->hasTable('activity_logs')) {
             return;
         }
 
@@ -35,7 +35,7 @@ class ActivityService
 
     private function sendDiscordNotification(ActivityLog $log): void
     {
-        if (! Schema::hasTable('site_settings')) {
+        if (! $this->hasTable('site_settings')) {
             return;
         }
 
@@ -64,6 +64,15 @@ class ActivityService
             Log::warning('Discord webhook failed.', [
                 'message' => $exception->getMessage(),
             ]);
+        }
+    }
+
+    private function hasTable(string $table): bool
+    {
+        try {
+            return Schema::hasTable($table);
+        } catch (\Throwable) {
+            return false;
         }
     }
 }

@@ -33,7 +33,7 @@
 
     <section class="panel overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table class="safe-table min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50 text-left text-slate-500">
                     <tr>
                         <th class="px-6 py-4 font-semibold">Kelas</th>
@@ -50,18 +50,18 @@
                 <tbody class="divide-y divide-slate-100 bg-white">
                     @forelse ($classrooms as $classroom)
                         <tr class="align-top">
-                            <td class="px-6 py-4">
+                            <td class="safe-wrap px-6 py-4">
                                 <p class="font-medium text-slate-950">{{ $classroom->name }}</p>
-                                <p class="mt-1 text-slate-500">{{ $classroom->description ?: 'Tanpa deskripsi' }}</p>
+                                <p class="safe-wrap mt-1 text-slate-500">{{ $classroom->description ?: 'Tanpa deskripsi' }}</p>
                             </td>
-                            <td class="px-6 py-4 text-slate-600">{{ $classroom->location ?: '-' }}</td>
-                            <td class="px-6 py-4 text-slate-600">{{ $classroom->leader?->name ?? 'Belum ditentukan' }}</td>
-                            <td class="px-6 py-4 text-slate-600">{{ $classroom->homeroomTeacher?->name ?? 'Belum ditentukan' }}</td>
-                            <td class="px-6 py-4 text-slate-600">{{ $classroom->reports_count }}</td>
+                            <td class="safe-wrap px-6 py-4 text-slate-600">{{ $classroom->location ?: '-' }}</td>
+                            <td class="safe-wrap px-6 py-4 text-slate-600">{{ $classroom->leader?->name ?? 'Belum ditentukan' }}</td>
+                            <td class="safe-wrap px-6 py-4 text-slate-600">{{ $classroom->homeroomTeacher?->name ?? 'Belum ditentukan' }}</td>
+                            <td class="cell-nowrap px-6 py-4 text-slate-600">{{ $classroom->reports_count }}</td>
                             @if (auth()->user()->isSuperAdmin())
-                                <td class="px-6 py-4 text-slate-600">
-                                    <p>Dibuat: {{ $classroom->createdByUser?->name ?? '-' }}</p>
-                                    <p class="mt-1">Diubah: {{ $classroom->updatedByUser?->name ?? '-' }}</p>
+                                <td class="safe-wrap px-6 py-4 text-slate-600">
+                                    <p class="safe-wrap">Dibuat: {{ $classroom->createdByUser?->name ?? '-' }}</p>
+                                    <p class="safe-wrap mt-1">Diubah: {{ $classroom->updatedByUser?->name ?? '-' }}</p>
                                 </td>
                             @endif
                             <td class="px-6 py-4">

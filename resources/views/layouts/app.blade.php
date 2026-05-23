@@ -1,7 +1,7 @@
 @php
     $user = auth()->user();
     $currentRoute = request()->route()?->getName();
-    $showFloatingSupportChat = ! request()->routeIs('chat.index');
+    $showFloatingSupportChat = $user && ! request()->routeIs('chat.index');
     $chatbotConfig = [
         'endpoint' => route('chatbot.message'),
         'brandName' => $brandName,
@@ -16,51 +16,67 @@
     ];
 @endphp
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" translate="no" class="notranslate">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>{{ $title ?? $brandName }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="app-shell min-h-screen overflow-x-hidden text-slate-900">
-    <div class="pointer-events-none fixed inset-0 overflow-hidden">
-        <div class="absolute -left-20 top-0 h-72 w-72 rounded-full bg-amber-200/30 blur-[100px]"></div>
-        <div class="absolute right-0 top-20 h-[28rem] w-[28rem] rounded-full bg-cyan-200/20 blur-[140px]"></div>
-        <div class="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-emerald-100/25 blur-[110px]"></div>
-        <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
-    </div>
+<body class="app-shell notranslate min-h-screen overflow-x-hidden text-slate-900" translate="no">
+    <div class="pointer-events-none fixed inset-x-0 top-0 h-px bg-white/80"></div>
 
     @if ($user)
-        <div class="relative mx-auto flex min-h-screen max-w-[112rem] flex-col gap-5 px-4 py-5 lg:flex-row lg:px-8 lg:py-6" data-app-frame>
-            <aside class="panel flex w-full shrink-0 flex-col overflow-hidden lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:w-[20.5rem]">
-                <div class="border-b border-slate-200/60 p-6">
-                    <div class="rounded-[28px] border border-white/80 bg-gradient-to-br from-white via-amber-50/60 to-slate-50 px-5 py-5 shadow-sm shadow-amber-100/40">
+        <div class="relative mx-auto flex min-h-screen max-w-[96rem] flex-col gap-4 px-4 py-4 lg:flex-row lg:px-6 lg:py-5" data-app-frame>
+            <div class="flex items-center justify-between gap-3 lg:hidden">
+                <button type="button" class="btn-secondary" data-sidebar-open aria-controls="app-sidebar" aria-expanded="false">
+                    Menu
+                </button>
+                <a href="{{ route('dashboard') }}" class="btn-secondary">Dashboard</a>
+            </div>
+            <button
+                type="button"
+                class="fixed inset-0 z-40 hidden bg-slate-950/40 lg:hidden"
+                data-sidebar-backdrop
+                aria-label="Tutup menu"
+            ></button>
+            <aside id="app-sidebar" class="panel fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] shrink-0 -translate-x-[115%] flex-col overflow-hidden transition-transform duration-200 ease-out lg:sticky lg:top-5 lg:z-auto lg:h-[calc(100vh-2.5rem)] lg:w-[18rem] lg:translate-x-0" data-sidebar>
+                <div class="border-b border-slate-200/60 p-4">
+                    <div class="mb-3 flex justify-end lg:hidden">
+                        <button type="button" class="btn-secondary px-3 py-2 text-xs" data-sidebar-close>
+                            Tutup
+                        </button>
+                    </div>
+                    <div class="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-amber-50/60 to-slate-50 px-4 py-4 shadow-sm shadow-amber-100/40">
                         <img
                             src="{{ asset($brandLogoPath) }}"
                             alt="{{ $brandName }}"
-                            class="h-auto w-full max-w-[250px] object-contain"
+                            class="mx-auto max-h-[140px] w-auto max-w-full object-contain"
+                            onerror="this.src='{{ asset('site/logo ph.png') }}'"
                         >
                         @if ($siteSettings?->manager_name)
-                            <p class="mt-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">Manager {{ $siteSettings->manager_name }}</p>
+                            <p class="mt-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">Manager {{ $siteSettings->manager_name }}</p>
                         @endif
-                        <div class="mt-5 flex items-center justify-between gap-3">
+                        <div class="mt-4 flex items-start justify-between gap-3">
                             <div>
                                 <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-amber-600">Portal Sekolah</p>
-                                <h1 class="mt-2 text-xl font-bold leading-tight tracking-tight text-slate-900">
+                                <h1 class="mt-2 text-[1.1rem] font-bold leading-tight tracking-tight text-slate-900">
                                     Manajemen Infrastruktur Terpadu
                                 </h1>
                             </div>
                             <span class="status-chip whitespace-nowrap">Live</span>
                         </div>
-                        <p class="mt-3 text-sm leading-6 text-slate-600">
+                        <p class="mt-3 text-[0.92rem] leading-6 text-slate-600">
                             Catat, verifikasi, dan pantau kondisi ruang sekolah dari satu dashboard yang lebih rapi dan fokus.
                         </p>
                     </div>
                 </div>
 
-                <nav class="space-y-4 overflow-y-auto p-4">
+                <nav class="sidebar-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
                     <div class="px-2">
                         <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-slate-400">Navigasi</p>
                     </div>
@@ -72,9 +88,6 @@
                             Dashboard
                         </a>
                     @endif
-                    <a href="{{ route('chat.index') }}" class="{{ request()->routeIs('chat.index') ? 'nav-link nav-link-active' : 'nav-link' }}">
-                        Chat AI
-                    </a>
                     @if ($user->hasPermission('reports.view'))
                         <a href="{{ route('reports.index') }}" class="{{ request()->routeIs('reports.*') ? 'nav-link nav-link-active' : 'nav-link' }}">
                             Laporan Infrastruktur
@@ -82,7 +95,7 @@
                     @endif
                     @if ($user->hasPermission('income.view'))
                         <a href="{{ route('income.index') }}" class="{{ request()->routeIs('income.*') ? 'nav-link nav-link-active' : 'nav-link' }}">
-                            Income
+                            Pemasukan
                         </a>
                     @endif
                     @if ($user->hasPermission('users.manage'))
@@ -112,35 +125,36 @@
                     @endif
                     @if ($user->hasPermission('trash.manage'))
                         <a href="{{ route('admin.trash.index') }}" class="{{ request()->routeIs('admin.trash.*') ? 'nav-link nav-link-active' : 'nav-link' }}">
-                            Trash & Restore
+                            Sampah & Pulihkan
                         </a>
                     @endif
                     @if ($user->hasPermission('tools.manage') || $user->hasPermission('exports.manage'))
                         <a href="{{ route('admin.tools.index') }}" class="{{ request()->routeIs('admin.tools.*', 'admin.exports.*', 'admin.imports.*') ? 'nav-link nav-link-active' : 'nav-link' }}">
-                            Backup & Tools
+                            Backup & Alat
                         </a>
                     @endif
 
-                    <div class="rounded-[26px] border border-slate-200/70 bg-slate-50/80 px-4 py-4">
+                    <div class="rounded-2xl border border-slate-200/70 bg-slate-50/80 px-4 py-4">
                         <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-slate-400">Akses Aktif</p>
                         <p class="mt-2 text-sm font-semibold text-slate-900">{{ $user->role_label }}</p>
-                        <p class="mt-1 text-sm leading-6 text-slate-600">
-                            Tampilan menu menyesuaikan role dan hak akses akun yang sedang login.
+                        <p class="mt-1 text-sm leading-5 text-slate-600">
+                            Tampilan menu menyesuaikan role dan checklist hak akses role.
                         </p>
                     </div>
                 </nav>
 
-                <div class="mt-auto border-t border-slate-200/60 bg-slate-50/50 p-4">
-                    <div class="rounded-3xl bg-slate-950 px-4 py-4 text-white shadow-lg shadow-slate-950/20 ring-1 ring-white/10">
-                        <div class="flex items-center gap-4">
+                <div class="border-t border-slate-200/60 bg-slate-50/50 p-3">
+                    <div class="rounded-2xl bg-slate-950 px-4 py-3 text-white shadow-lg shadow-slate-950/20 ring-1 ring-white/10">
+                        <div class="flex items-center gap-3">
                             @if ($user->avatar_url)
-                                <img
-                                    src="{{ $user->avatar_url }}"
-                                    alt="{{ $user->name }}"
-                                    class="h-14 w-14 rounded-2xl object-cover"
-                                >
+                            <img
+                                src="{{ $user->avatar_url }}"
+                                alt="{{ $user->name }}"
+                                class="h-12 w-12 rounded-2xl object-cover"
+                                onerror="this.style.display='none'"
+                            >
                             @else
-                                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-sm font-semibold text-white">
+                                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-sm font-semibold text-white">
                                     {{ $user->initials }}
                                 </div>
                             @endif
@@ -149,13 +163,13 @@
                                 <p class="mt-1 text-xs uppercase tracking-[0.28em] text-white/60">{{ $user->role_label }}</p>
                             </div>
                         </div>
-                        <p class="mt-3 text-sm text-white/70">{{ $user->email }}</p>
-                        <a href="{{ route('profile.edit') }}" class="mt-4 inline-flex text-sm font-semibold text-white underline underline-offset-4">
+                        <p class="mt-2 truncate text-sm text-white/70">{{ $user->email }}</p>
+                        <a href="{{ route('profile.edit') }}" class="mt-3 inline-flex text-sm font-semibold text-white underline underline-offset-4">
                             Kelola profil
                         </a>
                     </div>
 
-                    <form method="POST" action="{{ route('logout') }}" class="mt-4">
+                    <form method="POST" action="{{ route('logout') }}" class="mt-3">
                         @csrf
                         <button type="submit" class="btn-secondary w-full justify-center text-xs tracking-wide">
                             Logout
@@ -164,13 +178,13 @@
                 </div>
             </aside>
 
-            <main class="flex-1 space-y-5 pb-8">
-                <section class="panel overflow-hidden px-6 py-5 lg:px-8">
+            <main class="min-w-0 flex-1 space-y-5 {{ $showFloatingSupportChat ? 'pb-32' : 'pb-8' }}">
+                <section class="panel overflow-hidden px-5 py-5 lg:px-6">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <p class="text-[11px] font-semibold uppercase tracking-[0.34em] text-slate-400">Workspace</p>
-                            <h2 class="mt-2 text-2xl font-semibold text-slate-950">{{ $title ?? $brandName }}</h2>
-                            <p class="mt-2 text-sm leading-6 text-slate-600">
+                            <h2 class="mt-2 min-w-0 text-[1.9rem] font-semibold text-slate-950 break-words [overflow-wrap:anywhere]">{{ $title ?? $brandName }}</h2>
+                            <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
                                 Kelola data sekolah dengan antarmuka yang lebih bersih, fokus, dan konsisten di setiap halaman.
                             </p>
                         </div>
@@ -225,17 +239,18 @@
                     <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                         <div class="max-w-2xl">
                             <p class="text-xs font-semibold uppercase tracking-[0.38em] text-amber-600">Portal Infrastruktur Sekolah</p>
-                            <h1 class="mt-4 text-4xl font-semibold leading-tight text-slate-950">{{ $brandName }}</h1>
+                            <h1 class="mt-4 min-w-0 text-4xl font-semibold leading-tight text-slate-950 break-words [overflow-wrap:anywhere]">{{ $brandName }}</h1>
                             <p class="mt-4 max-w-xl text-base leading-7 text-slate-600">
                                 Sistem ini sudah memakai identitas sekolah Anda dan disiapkan untuk pendataan, verifikasi, monitoring, serta bantuan pengguna.
                             </p>
                         </div>
 
-                        <div class="rounded-[2rem] border border-amber-100 bg-white px-5 py-5 shadow-sm shadow-amber-100/50">
+                        <div class="rounded-2xl border border-amber-100 bg-white px-5 py-5 shadow-sm shadow-amber-100/50">
                             <img
                                 src="{{ asset($brandLogoPath) }}"
                                 alt="{{ $brandName }}"
-                                class="h-auto w-full max-w-[320px] object-contain"
+                                class="mx-auto max-h-[220px] w-auto max-w-full object-contain"
+                                onerror="this.src='{{ asset('site/logo ph.png') }}'"
                             >
                         </div>
                     </div>

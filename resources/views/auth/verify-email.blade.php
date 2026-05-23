@@ -19,6 +19,23 @@
                 Email terdaftar: <span class="font-semibold text-slate-950">{{ auth()->user()->email }}</span>
             </p>
 
+            @if (session('success'))
+                <div class="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-700 shadow-sm">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if ($errors->any())
+                <div class="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700 shadow-sm">
+                    <p class="font-semibold">Masih ada input yang perlu diperbaiki.</p>
+                    <ul class="mt-2 space-y-1">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('verification.send') }}" class="mt-8 space-y-5">
                 @csrf
                 <button type="submit" class="btn-primary w-full justify-center">Kirim Ulang Link Verifikasi</button>

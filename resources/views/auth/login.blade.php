@@ -5,7 +5,7 @@
         <section class="panel px-8 py-8">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.38em] text-amber-600">Sistem Pendataan</p>
-                <h2 class="mt-4 max-w-xl text-4xl font-semibold leading-tight text-slate-950">
+                <h2 class="mt-4 max-w-xl text-4xl font-semibold leading-tight text-slate-950 break-words [overflow-wrap:anywhere]">
                     {{ $brandName }} siap dipakai untuk pendataan, verifikasi, dan monitoring.
                 </h2>
                 <p class="mt-4 max-w-2xl text-base leading-7 text-slate-600">
@@ -21,7 +21,7 @@
             <p class="mt-3 text-sm leading-6 text-slate-600">
                 {{ $needsInitialSetup
                     ? 'Halaman login tetap tersedia, tetapi akun pertama harus dibuat lebih dulu lewat setup awal.'
-                    : 'Masukkan username berupa nama lengkap dan password untuk langsung masuk. Jika lupa password, isi username lalu gunakan OTP email.' }}
+                    : 'Masukkan username berupa nama lengkap dan password untuk langsung masuk, atau gunakan Google. Login Google baru akan otomatis masuk sebagai Ketua Kelas dan tercatat di log aktivitas.' }}
             </p>
 
             @if ($needsInitialSetup)
@@ -82,15 +82,13 @@
 
                 <div>
                     <label for="password" class="label">Password</label>
-                    <input id="password" name="password" type="password" class="field mt-2" required>
+                    <input id="password" name="password" type="password" autocomplete="current-password" class="field mt-2" required>
                 </div>
 
                 <label class="flex items-center gap-3 text-sm text-slate-600">
                     <input type="checkbox" name="remember" value="1" class="h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-400">
                     Ingat sesi login saya
                 </label>
-
-                @include('partials.captcha', ['captcha' => $captcha])
 
                 <button type="submit" name="action" value="password" class="btn-primary w-full justify-center">
                     Masuk
@@ -101,10 +99,17 @@
                 </button>
 
                 <div class="flex flex-wrap justify-between gap-3 text-sm text-slate-600">
-                    <a href="{{ $needsInitialSetup ? route('setup.admin.create') : route('register') }}" class="font-semibold text-slate-950 underline underline-offset-4">
-                        {{ $needsInitialSetup ? 'Setup super admin' : 'Register' }}
-                    </a>
-                    <a href="{{ route('password.request') }}" class="font-semibold text-slate-950 underline underline-offset-4">Lupa password</a>
+                    @if ($needsInitialSetup)
+                        <a href="{{ route('setup.admin.create') }}" class="font-semibold text-slate-950 underline underline-offset-4">
+                            Setup super admin
+                        </a>
+                    @else
+                        <span>Login Google baru tercatat untuk ditinjau super admin.</span>
+                    @endif
+                    <div class="flex gap-3">
+                        <a href="{{ route('register') }}" class="font-semibold text-slate-950 underline underline-offset-4">Register</a>
+                        <a href="{{ route('password.request') }}" class="font-semibold text-slate-950 underline underline-offset-4">Lupa password</a>
+                    </div>
                 </div>
             </form>
         </section>

@@ -50,10 +50,45 @@
                         @endif
 
                         <div class="flex-1">
-                            <input id="avatar" name="avatar" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="field">
+                            <input id="avatar" name="avatar" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="field" data-avatar-input>
                             <p class="mt-2 text-sm text-slate-500">
-                                Upload foto ukuran kotak agar hasil profil lebih rapi. Format: JPG, PNG, atau WEBP.
+                                Foto akan otomatis dicrop menjadi kotak agar pas sebagai avatar. Format: JPG, PNG, atau WEBP.
                             </p>
+                            <div class="mt-4 hidden rounded-2xl border border-slate-200 bg-white px-4 py-4" data-avatar-preview-wrap>
+                                <div class="grid gap-4 sm:grid-cols-[11rem,1fr] sm:items-start">
+                                    <div>
+                                        <div class="relative h-44 w-44 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-inner" data-avatar-crop-box>
+                                            <img
+                                                src=""
+                                                alt="Area crop foto profil"
+                                                class="absolute left-1/2 top-1/2 max-w-none cursor-move select-none"
+                                                draggable="false"
+                                                data-avatar-crop-image
+                                            >
+                                        </div>
+                                        <p class="mt-2 text-xs leading-5 text-slate-500">Geser gambar di dalam kotak.</p>
+                                    </div>
+
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label for="avatar_zoom" class="label">Zoom</label>
+                                            <input id="avatar_zoom" type="range" min="1" max="3" step="0.01" value="1" class="mt-2 w-full" data-avatar-zoom>
+                                        </div>
+
+                                        <div class="flex items-center gap-4">
+                                            <img
+                                                src=""
+                                                alt="Preview crop foto profil"
+                                                class="h-20 w-20 rounded-2xl object-cover shadow-sm"
+                                                data-avatar-preview
+                                            >
+                                            <p class="text-sm leading-6 text-slate-600">
+                                                Preview hasil crop. Atur posisi dulu, lalu simpan profil.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
                             @if ($user->avatar_path)
                                 <label class="mt-3 flex items-center gap-3 text-sm text-slate-600">
@@ -67,17 +102,17 @@
 
                 <div>
                     <label for="name" class="label">Nama Lengkap</label>
-                    <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}" class="field mt-2" required>
+                    <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}" maxlength="80" pattern="[\p{L}\p{M}\p{N}\s.,'()\-]+" class="field mt-2" required>
                 </div>
 
                 <div>
                     <label for="email" class="label">Email</label>
-                    <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" class="field mt-2" required>
+                    <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" maxlength="255" class="field mt-2" required>
                 </div>
 
                 <div>
                     <label for="whatsapp_number" class="label">WhatsApp</label>
-                    <input id="whatsapp_number" name="whatsapp_number" type="text" value="{{ old('whatsapp_number', $user->whatsapp_number) }}" class="field mt-2">
+                    <input id="whatsapp_number" name="whatsapp_number" type="tel" value="{{ old('whatsapp_number', $user->whatsapp_number) }}" maxlength="16" pattern="\+?[0-9]{10,15}" class="field mt-2">
                 </div>
 
                 <div class="rounded-3xl bg-slate-50 px-5 py-5 text-sm text-slate-600">
@@ -101,17 +136,17 @@
 
                 <div>
                     <label for="current_password" class="label">Password Saat Ini</label>
-                    <input id="current_password" name="current_password" type="password" class="field mt-2" required>
+                    <input id="current_password" name="current_password" type="password" maxlength="72" class="field mt-2" required>
                 </div>
 
                 <div>
                     <label for="password" class="label">Password Baru</label>
-                    <input id="password" name="password" type="password" class="field mt-2" required>
+                    <input id="password" name="password" type="password" minlength="8" maxlength="72" class="field mt-2" required>
                 </div>
 
                 <div>
                     <label for="password_confirmation" class="label">Konfirmasi Password Baru</label>
-                    <input id="password_confirmation" name="password_confirmation" type="password" class="field mt-2" required>
+                    <input id="password_confirmation" name="password_confirmation" type="password" minlength="8" maxlength="72" class="field mt-2" required>
                 </div>
 
                 <button type="submit" class="btn-secondary">Perbarui Password</button>

@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -100,7 +102,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public static function manageableRoleOptionsFor(self $actor): array
     {
         if ($actor->isSuperAdmin()) {
-            return self::roleOptions();
+            return Arr::except(self::roleOptions(), [self::ROLE_SUPER_ADMIN]);
         }
 
         if ($actor->isAdmin()) {
@@ -289,6 +291,18 @@ class User extends Authenticatable implements MustVerifyEmail
             return true;
         }
 
+        $hasPermissionsTable = self::hasDatabaseTable('permissions');
+        $hasUserPermissionsTable = self::hasDatabaseTable('user_permissions');
+        $hasRolePermissionsTable = self::hasDatabaseTable('role_permissions');
+
+        if ($hasRolePermissionsTable && $hasPermissionsTable) {
+            return in_array($slug, self::permissionSlugsForRole($this->role), true);
+        }
+
+        if (! $hasPermissionsTable || ! $hasUserPermissionsTable) {
+            return in_array($slug, self::defaultPermissionSlugsForRole($this->role), true);
+        }
+
         $relation = $this->relationLoaded('permissions')
             ? $this->permissions
             : $this->permissions()->get(['permissions.slug']);
@@ -297,10 +311,74 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * @return list<string>
+     */
+    public static function permissionSlugsForRole(string $role): array
+    {
+        if ($role === self::ROLE_SUPER_ADMIN) {
+            return array_column(Permission::defaults(), 'slug');
+        }
+
+        if (! self::hasDatabaseTable('role_permissions') || ! self::hasDatabaseTable('permissions')) {
+            return self::defaultPermissionSlugsForRole($role);
+        }
+
+        return DB::table('role_permissions')
+            ->join('permissions', 'permissions.id', '=', 'role_permissions.permission_id')
+            ->where('role_permissions.role', $role)
+            ->orderBy('permissions.group')
+            ->orderBy('permissions.label')
+            ->pluck('permissions.slug')
+            ->map(fn (mixed $slug): string => (string) $slug)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<int>  $permissionIds
+     */
+    public static function syncRolePermissionIds(string $role, array $permissionIds): void
+    {
+        if (! self::hasDatabaseTable('role_permissions') || ! self::hasDatabaseTable('permissions')) {
+            return;
+        }
+
+        $permissionIds = Permission::query()
+            ->whereIn('id', array_values(array_unique($permissionIds)))
+            ->pluck('id')
+            ->all();
+
+        DB::transaction(function () use ($role, $permissionIds): void {
+            DB::table('role_permissions')->where('role', $role)->delete();
+
+            if ($permissionIds !== []) {
+                DB::table('role_permissions')->insert(array_map(
+                    fn (int $permissionId): array => [
+                        'role' => $role,
+                        'permission_id' => $permissionId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ],
+                    $permissionIds,
+                ));
+            }
+
+            User::query()
+                ->where('role', $role)
+                ->get()
+                ->each(fn (self $user): mixed => $user->permissions()->sync($permissionIds));
+        });
+    }
+
+    /**
      * @param  list<string>  $slugs
      */
     public function syncPermissionsBySlugs(array $slugs): void
     {
+        if (! self::hasDatabaseTable('permissions') || ! self::hasDatabaseTable('user_permissions')) {
+            return;
+        }
+
         $ids = Permission::query()
             ->whereIn('slug', array_values(array_unique($slugs)))
             ->pluck('id')
@@ -329,5 +407,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getAvatarUrlAttribute(): ?string
     {
         return filled($this->avatar_path) ? asset($this->avatar_path) : null;
+    }
+
+    private static function hasDatabaseTable(string $table): bool
+    {
+        try {
+            return Schema::hasTable($table);
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

@@ -10,6 +10,7 @@ use App\Services\BackupService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -30,8 +31,21 @@ class SystemToolController extends Controller
             ? collect(File::files($backupDirectory))->sortByDesc(fn ($file) => $file->getMTime())->values()
             : collect();
 
+        $page = max(1, request()->integer('backups_page', 1));
+        $perPage = 5;
+
         return view('admin.tools.index', [
-            'backupFiles' => $files,
+            'backupFiles' => new LengthAwarePaginator(
+                $files->forPage($page, $perPage)->values(),
+                $files->count(),
+                $perPage,
+                $page,
+                [
+                    'path' => request()->url(),
+                    'pageName' => 'backups_page',
+                    'query' => request()->except('backups_page'),
+                ],
+            ),
         ]);
     }
 
@@ -120,19 +134,18 @@ class SystemToolController extends Controller
 
     public function exportUsers()
     {
-        $rows = User::withTrashed()->with('permissions:id,slug')->get()->map(function (User $user): string {
+        $rows = User::withTrashed()->get()->map(function (User $user): string {
             return implode(',', [
                 $this->escapeCsv($user->name),
                 $this->escapeCsv($user->email),
                 $this->escapeCsv($user->role),
                 $this->escapeCsv($user->whatsapp_number ?? ''),
-                $this->escapeCsv($user->permissions->pluck('slug')->implode('|')),
                 $this->escapeCsv($user->deleted_at?->toDateTimeString() ?? ''),
             ]);
         });
 
         $content = implode("\n", array_merge([
-            'name,email,role,whatsapp_number,permissions,deleted_at',
+            'name,email,role,whatsapp_number,deleted_at',
         ], $rows->all()));
 
         return response($content, 200, [
@@ -212,17 +225,7 @@ class SystemToolController extends Controller
                 $user->restore();
             }
 
-            $permissions = collect(explode('|', (string) ($data['permissions'] ?? '')))
-                ->map(fn ($slug) => trim($slug))
-                ->filter()
-                ->values()
-                ->all();
-
-            if (! $request->user()->isSuperAdmin()) {
-                $permissions = [];
-            }
-
-            $user->syncPermissionsBySlugs($permissions !== [] ? $permissions : User::defaultPermissionSlugsForRole($user->role));
+            $user->syncPermissionsBySlugs(User::permissionSlugsForRole($user->role));
             $processed++;
         }
 

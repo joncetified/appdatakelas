@@ -31,17 +31,17 @@
             <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">CSV Users</p>
             <h3 class="mt-2 text-xl font-semibold text-slate-950">Kolom wajib</h3>
             <p class="mt-3 text-sm leading-6 text-slate-600">
-                <code class="rounded-xl bg-slate-100 px-2 py-1 text-xs text-slate-700">name,email,role,whatsapp_number,permissions,deleted_at</code>
+                <code class="inline-block max-w-full break-all rounded-xl bg-slate-100 px-2 py-1 text-xs text-slate-700">name,email,role,whatsapp_number,deleted_at</code>
             </p>
             <p class="mt-3 text-sm leading-6 text-slate-600">
-                Role di luar kewenangan operator akan dilewati otomatis saat import.
+                Hak akses tidak diatur dari CSV akun. Ubah checklist role dari menu Hak Akses.
             </p>
         </article>
         <article class="panel px-5 py-5">
             <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">CSV Items</p>
             <h3 class="mt-2 text-xl font-semibold text-slate-950">Validasi baris import</h3>
             <p class="mt-3 text-sm leading-6 text-slate-600">
-                <code class="rounded-xl bg-slate-100 px-2 py-1 text-xs text-slate-700">infrastructure_report_id,item_name,total_units,damaged_units,notes</code>
+                <code class="inline-block max-w-full break-all rounded-xl bg-slate-100 px-2 py-1 text-xs text-slate-700">infrastructure_report_id,item_name,total_units,damaged_units,notes</code>
             </p>
             <p class="mt-3 text-sm leading-6 text-slate-600">
                 Baris dengan total unit tidak valid atau unit rusak melebihi total sekarang dilewati agar data laporan tetap konsisten.
@@ -79,6 +79,11 @@
                         <p class="text-sm text-slate-500">Belum ada file backup.</p>
                     @endforelse
                 </div>
+                @if ($backupFiles->hasPages())
+                    <div class="mt-5 border-t border-slate-200 pt-4">
+                        {{ $backupFiles->links() }}
+                    </div>
+                @endif
             </article>
 
             <article class="panel px-6 py-6">
@@ -130,7 +135,7 @@
                     <div>
                         <label for="users_file" class="label">CSV Users</label>
                         <input id="users_file" name="users_file" type="file" accept=".csv,text/csv,.txt,text/plain" class="field mt-2" required>
-                        <p class="mt-2 text-sm text-slate-500">Header wajib: <code class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">name,email,role,whatsapp_number,permissions,deleted_at</code>.</p>
+                        <p class="mt-2 text-sm text-slate-500">Header wajib: <code class="inline-block max-w-full break-all rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">name,email,role,whatsapp_number,deleted_at</code>.</p>
                     </div>
                     <button type="submit" class="btn-primary">Import Users</button>
                 </form>

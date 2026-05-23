@@ -2,11 +2,14 @@
 
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Models\SiteSetting;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -27,6 +30,20 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (Throwable $exception, Request $request) {
+            if ($exception instanceof TokenMismatchException) {
+                if ($request->hasSession()) {
+                    $request->session()->regenerateToken();
+                }
+
+                $target = $request->user()
+                    ? url('/dashboard')
+                    : url('/login');
+
+                return redirect($target)->withErrors([
+                    'session' => 'Sesi halaman sudah kedaluwarsa. Silakan coba lagi.',
+                ]);
+            }
+
             if (
                 $request->expectsJson()
                 || $exception instanceof AuthenticationException
@@ -38,6 +55,20 @@ return Application::configure(basePath: dirname(__DIR__))
             $status = $exception instanceof HttpExceptionInterface
                 ? $exception->getStatusCode()
                 : 500;
+
+            if ($status === 419) {
+                if ($request->hasSession()) {
+                    $request->session()->regenerateToken();
+                }
+
+                $target = $request->user()
+                    ? url('/dashboard')
+                    : url('/login');
+
+                return redirect($target)->withErrors([
+                    'session' => 'Sesi halaman sudah kedaluwarsa. Silakan coba lagi.',
+                ]);
+            }
 
             $defaultMessage = match ($status) {
                 403 => 'Anda tidak memiliki akses ke halaman ini.',
@@ -52,8 +83,22 @@ return Application::configure(basePath: dirname(__DIR__))
             };
 
             $brandName = 'SPH';
-            $brandLogoPath = 'site/permata-harapan-logo.svg';
-            $homeUrl = $request->user() ? route('dashboard') : route('login');
+            $brandLogoPath = 'site/logo ph.png';
+            $homeUrl = $request->user() ? url('/dashboard') : url('/login');
+
+            try {
+                if (Schema::hasTable('site_settings')) {
+                    $settings = SiteSetting::query()->first();
+                    $brandName = trim((string) ($settings?->company_name ?: $brandName)) ?: $brandName;
+                    $brandLogoPath = 'site/logo ph.png';
+                }
+            } catch (Throwable) {
+                $brandLogoPath = 'site/logo ph.png';
+            }
+
+            if (! is_file(public_path($brandLogoPath))) {
+                $brandLogoPath = 'site/logo ph.png';
+            }
 
             if (! app()->bound('view')) {
                 $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');

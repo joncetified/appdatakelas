@@ -94,6 +94,10 @@ class CaptchaService
      */
     private function shouldUseGoogleCaptcha(array $credentials): bool
     {
+        if (! config('services.recaptcha.enabled', true)) {
+            return false;
+        }
+
         return filled($credentials['site_key']) && filled($credentials['secret_key']);
     }
 

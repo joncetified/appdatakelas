@@ -2,10 +2,10 @@
 
 @section('content')
     <section class="panel px-6 py-6 lg:px-8">
-        <p class="text-xs font-semibold uppercase tracking-[0.34em] text-slate-500">Income</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.34em] text-slate-500">Pemasukan</p>
         <h2 class="mt-3 text-3xl font-semibold text-slate-950">{{ $pageTitle }}</h2>
         <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-            Data income ini akan ikut masuk ke dashboard chart dan kartu income khusus super admin serta manager.
+            Data pemasukan ini akan ikut masuk ke grafik dashboard dan kartu pemasukan khusus super admin serta manager.
         </p>
     </section>
 
@@ -19,7 +19,7 @@
             <div class="grid gap-5 md:grid-cols-2">
                 <div>
                     <label for="title" class="label">Judul</label>
-                    <input id="title" name="title" type="text" value="{{ old('title', $entry->title) }}" class="field mt-2" required>
+                    <input id="title" name="title" type="text" value="{{ old('title', $entry->title) }}" maxlength="120" class="field mt-2" required>
                 </div>
 
                 <div>
@@ -29,13 +29,14 @@
 
                 <div class="md:col-span-2">
                     <label for="amount" class="label">Nominal</label>
-                    <input id="amount" name="amount" type="number" min="0" step="0.01" value="{{ old('amount', $entry->amount) }}" class="field mt-2" required>
+                    <input id="amount" name="amount" type="number" min="0" max="9999999999999.99" step="0.01" value="{{ old('amount', $entry->amount) }}" class="field mt-2" required>
+                    <p class="mt-2 text-sm text-slate-500">Maksimal Rp 9.999.999.999.999,99.</p>
                 </div>
             </div>
 
             <div>
                 <label for="description" class="label">Deskripsi</label>
-                <textarea id="description" name="description" rows="5" class="field mt-2">{{ old('description', $entry->description) }}</textarea>
+                <textarea id="description" name="description" rows="5" maxlength="500" class="field mt-2">{{ old('description', $entry->description) }}</textarea>
             </div>
 
             @if ($entry->exists && auth()->user()->isSuperAdmin())

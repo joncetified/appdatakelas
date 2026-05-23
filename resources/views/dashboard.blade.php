@@ -58,7 +58,7 @@
                 </article>
                 <article class="hero-stat bg-white/10 text-white shadow-none">
                     <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-white/60">Status Sistem</p>
-                    <p class="mt-3 text-sm leading-6 text-white/80">Grafik dan statistik diringkas mengikuti role serta hak akses akun aktif.</p>
+                    <p class="mt-3 text-sm leading-6 text-white/80">Grafik dan statistik diringkas mengikuti role serta checklist akses yang berlaku.</p>
                 </article>
             </div>
         </section>
@@ -225,7 +225,7 @@
                     <article class="{{ $report->critical_stock_count > 0 ? 'critical-stock-card' : 'border-slate-200 bg-slate-50' }} rounded-3xl border px-5 py-5">
                         <div class="flex items-start justify-between gap-4">
                             <div>
-                                <p class="text-lg font-semibold text-slate-950">{{ $report->classroom->name }}</p>
+                                <p class="text-lg font-semibold text-slate-950">{{ $report->classroom?->name ?? 'Kelas tidak tersedia' }}</p>
                                 <p class="mt-1 text-sm text-slate-500">{{ $report->report_date->translatedFormat('d F Y') }}</p>
                             </div>
                             <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClasses[$report->status] ?? 'bg-slate-100 text-slate-700' }}">
@@ -233,13 +233,13 @@
                             </span>
                         </div>
                         <div class="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-2">
-                            <p>Pelapor: {{ $report->reporter->name }}</p>
+                            <p>Pelapor: {{ $report->reporter?->name ?? '-' }}</p>
                             <p>Item: {{ $report->items->count() }}</p>
                             <p>Total unit: {{ $report->total_units }}</p>
                             <p>Unit rusak: {{ $report->damaged_units }}</p>
                         </div>
                         @if ($report->critical_stock_count > 0)
-                            <p class="mt-4 stock-badge stock-badge-critical">{{ $report->critical_stock_count }} item stok kritis</p>
+                            <p class="mt-4 stock-badge stock-badge-critical">{{ $report->critical_stock_count }} item kondisi kritis</p>
                         @endif
                         <a href="{{ route('reports.show', $report) }}" class="mt-5 inline-flex text-sm font-semibold text-slate-950 underline decoration-amber-300 underline-offset-4">
                             Buka detail laporan
@@ -299,7 +299,7 @@
                                 <p>{{ $classroom->latestReport->damaged_units }} unit rusak</p>
                             </div>
                             @if ($classroom->latestReport->critical_stock_count > 0)
-                                <p class="stock-badge stock-badge-critical">{{ $classroom->latestReport->critical_stock_count }} item stok kritis</p>
+                                <p class="stock-badge stock-badge-critical">{{ $classroom->latestReport->critical_stock_count }} item kondisi kritis</p>
                             @endif
                             <a href="{{ route('reports.show', $classroom->latestReport) }}" class="inline-flex text-sm font-semibold text-slate-950 underline decoration-amber-300 underline-offset-4">
                                 Lihat detail
@@ -342,7 +342,7 @@
                                 <p>{{ $report->damaged_units }} unit rusak</p>
                             </div>
                             @if ($report->critical_stock_count > 0)
-                                <p class="mt-4 stock-badge stock-badge-critical">{{ $report->critical_stock_count }} item stok kritis</p>
+                                <p class="mt-4 stock-badge stock-badge-critical">{{ $report->critical_stock_count }} item kondisi kritis</p>
                             @endif
                             <div class="mt-5 flex flex-wrap gap-3">
                                 <a href="{{ route('reports.show', $report) }}" class="btn-secondary">Detail</a>
@@ -415,7 +415,7 @@
                     <article class="{{ $report->critical_stock_count > 0 ? 'critical-stock-card' : 'border-slate-200 bg-slate-50' }} rounded-3xl border px-5 py-5">
                         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                             <div>
-                                <p class="text-lg font-semibold text-slate-950">{{ $report->classroom->name }}</p>
+                                <p class="text-lg font-semibold text-slate-950">{{ $report->classroom?->name ?? 'Kelas tidak tersedia' }}</p>
                                 <p class="mt-1 text-sm text-slate-500">{{ $report->report_date->translatedFormat('d F Y') }}</p>
                             </div>
                             <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClasses[$report->status] ?? 'bg-slate-100 text-slate-700' }}">
@@ -423,13 +423,13 @@
                             </span>
                         </div>
                         <div class="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-4">
-                            <p>Pelapor: {{ $report->reporter->name }}</p>
+                            <p>Pelapor: {{ $report->reporter?->name ?? '-' }}</p>
                             <p>{{ $report->student_count }} siswa</p>
                             <p>{{ $report->teacher_count }} guru</p>
                             <p>{{ $report->items->count() }} item</p>
                         </div>
                         @if ($report->critical_stock_count > 0)
-                            <p class="mt-4 stock-badge stock-badge-critical">{{ $report->critical_stock_count }} item stok kritis</p>
+                            <p class="mt-4 stock-badge stock-badge-critical">{{ $report->critical_stock_count }} item kondisi kritis</p>
                         @endif
                         <a href="{{ route('reports.show', $report) }}" class="mt-5 inline-flex text-sm font-semibold text-slate-950 underline decoration-amber-300 underline-offset-4">
                             Tinjau laporan

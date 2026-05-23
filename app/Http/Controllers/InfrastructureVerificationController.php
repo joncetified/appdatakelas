@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\InfrastructureReport;
 use App\Services\ActivityService;
+use App\Support\InputRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -42,7 +43,7 @@ class InfrastructureVerificationController extends Controller
                     InfrastructureReport::STATUS_REVISION_REQUESTED,
                 ]),
             ],
-            'verification_notes' => ['nullable', 'string'],
+            'verification_notes' => InputRules::safeText(1000),
         ]);
 
         if (

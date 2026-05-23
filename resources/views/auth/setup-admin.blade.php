@@ -26,27 +26,27 @@
 
                 <div>
                     <label for="name" class="label">Nama Lengkap</label>
-                    <input id="name" name="name" type="text" value="{{ old('name') }}" class="field mt-2" required autofocus>
+                    <input id="name" name="name" type="text" value="{{ old('name') }}" maxlength="80" pattern="[\p{L}\p{M}\p{N}\s.,'()\-]+" class="field mt-2" required autofocus>
                 </div>
 
                 <div>
                     <label for="email" class="label">Email</label>
-                    <input id="email" name="email" type="email" value="{{ old('email') }}" class="field mt-2" required>
+                    <input id="email" name="email" type="email" value="{{ old('email') }}" maxlength="255" class="field mt-2" required>
                 </div>
 
                 <div>
                     <label for="whatsapp_number" class="label">WhatsApp</label>
-                    <input id="whatsapp_number" name="whatsapp_number" type="text" value="{{ old('whatsapp_number') }}" class="field mt-2">
+                    <input id="whatsapp_number" name="whatsapp_number" type="tel" value="{{ old('whatsapp_number') }}" maxlength="16" pattern="\+?[0-9]{10,15}" class="field mt-2">
                 </div>
 
                 <div>
                     <label for="password" class="label">Password</label>
-                    <input id="password" name="password" type="password" class="field mt-2" required>
+                    <input id="password" name="password" type="password" minlength="8" maxlength="72" class="field mt-2" required>
                 </div>
 
                 <div>
                     <label for="password_confirmation" class="label">Konfirmasi Password</label>
-                    <input id="password_confirmation" name="password_confirmation" type="password" class="field mt-2" required>
+                    <input id="password_confirmation" name="password_confirmation" type="password" minlength="8" maxlength="72" class="field mt-2" required>
                 </div>
 
                 <button type="submit" class="btn-primary w-full justify-center">
