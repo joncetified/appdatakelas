@@ -14,6 +14,8 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
+use Laravel\Socialite\Two\User as SocialiteUser;
 use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse;
 use Throwable;
 
@@ -134,13 +136,21 @@ class AuthenticatedSessionController extends Controller
                 ]);
         }
 
-        return Socialite::driver('google')
-            ->scopes(['openid', 'profile', 'email'])
-            ->redirect();
+        try {
+            return Socialite::driver('google')
+                ->scopes(['openid', 'profile', 'email'])
+                ->redirect();
+        } catch (Throwable) {
+            return $this->googleFailureRedirect('Google login sedang tidak bisa dibuka. Cek konfigurasi Google Client ID, Secret, dan Redirect URL.');
+        }
     }
 
     public function googleCallback(Request $request): RedirectResponse
     {
+        if ($request->filled('error')) {
+            return $this->googleFailureRedirect($this->googleErrorMessage($request));
+        }
+
         if (! $this->googleLoginConfigured()) {
             return redirect()
                 ->route('login')
@@ -150,13 +160,9 @@ class AuthenticatedSessionController extends Controller
         }
 
         try {
-            $googleUser = Socialite::driver('google')->user();
+            $googleUser = $this->googleUserFromCallback();
         } catch (Throwable) {
-            return redirect()
-                ->route('login')
-                ->withErrors([
-                    'google' => 'Login Google gagal atau dibatalkan. Coba lagi.',
-                ]);
+            return $this->googleFailureRedirect('Login Google gagal atau sesi sudah kedaluwarsa. Muat ulang halaman login lalu coba lagi.');
         }
 
         $googleId = $googleUser->getId();
@@ -428,6 +434,37 @@ class AuthenticatedSessionController extends Controller
         return filled(config('services.google.client_id'))
             && filled(config('services.google.client_secret'))
             && filled(config('services.google.redirect'));
+    }
+
+    private function googleUserFromCallback(): SocialiteUser
+    {
+        $provider = Socialite::driver('google');
+
+        try {
+            return $provider->user();
+        } catch (InvalidStateException) {
+            return $provider->stateless()->user();
+        }
+    }
+
+    private function googleFailureRedirect(string $message): RedirectResponse
+    {
+        return redirect()
+            ->route('login')
+            ->withErrors([
+                'google' => $message,
+            ]);
+    }
+
+    private function googleErrorMessage(Request $request): string
+    {
+        $error = (string) $request->query('error');
+
+        return match ($error) {
+            'access_denied' => 'Login Google dibatalkan. Pilih akun Google dan beri izin akses email untuk masuk.',
+            'redirect_uri_mismatch' => 'Redirect URL Google tidak cocok dengan konfigurasi aplikasi. Hubungi admin untuk memperbaiki GOOGLE_REDIRECT_URL.',
+            default => 'Login Google gagal dari pihak Google. Muat ulang halaman login lalu coba lagi.',
+        };
     }
 
     private function googleEmailVerified(mixed $googleUser): bool

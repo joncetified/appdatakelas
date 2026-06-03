@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Mockery;
 use Tests\TestCase;
@@ -227,6 +228,63 @@ class LoginOtpTest extends TestCase
         $user->refresh();
 
         $this->assertSame('google-user-123', $user->google_id);
+        $this->assertNotNull($user->email_verified_at);
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_google_callback_returns_to_login_when_google_reports_error(): void
+    {
+        config()->set('services.google.client_id', 'test-client-id');
+        config()->set('services.google.client_secret', 'test-client-secret');
+        config()->set('services.google.redirect', 'http://localhost:8000/auth-google-callback');
+
+        $response = $this->from(route('login'))->get(route('login.google.callback', [
+            'error' => 'access_denied',
+        ]));
+
+        $response
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('google');
+
+        $this->assertGuest();
+    }
+
+    public function test_google_callback_uses_stateless_fallback_when_state_mismatches(): void
+    {
+        config()->set('services.google.client_id', 'test-client-id');
+        config()->set('services.google.client_secret', 'test-client-secret');
+        config()->set('services.google.redirect', 'http://localhost:8000/auth-google-callback');
+
+        $user = User::factory()->classLeader()->unverified()->create([
+            'email' => 'fallback@sekolah.test',
+            'google_id' => null,
+        ]);
+
+        $googleUser = (new SocialiteUser)
+            ->setRaw(['email_verified' => true])
+            ->map([
+                'id' => 'google-fallback-user',
+                'email' => 'fallback@sekolah.test',
+                'name' => 'Fallback Google',
+            ]);
+
+        $provider = Mockery::mock();
+        $provider->shouldReceive('user')->once()->ordered()->andThrow(new InvalidStateException);
+        $provider->shouldReceive('stateless')->once()->ordered()->andReturnSelf();
+        $provider->shouldReceive('user')->once()->ordered()->andReturn($googleUser);
+
+        Socialite::shouldReceive('driver')
+            ->once()
+            ->with('google')
+            ->andReturn($provider);
+
+        $response = $this->get(route('login.google.callback'));
+
+        $response->assertRedirect(route('dashboard'));
+
+        $user->refresh();
+
+        $this->assertSame('google-fallback-user', $user->google_id);
         $this->assertNotNull($user->email_verified_at);
         $this->assertAuthenticatedAs($user);
     }
