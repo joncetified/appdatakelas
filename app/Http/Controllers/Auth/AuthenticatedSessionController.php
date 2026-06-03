@@ -94,7 +94,7 @@ class AuthenticatedSessionController extends Controller
 
         if (! $user) {
             throw ValidationException::withMessages([
-                'login' => 'Username atau password tidak valid.',
+                'login' => 'Username atau password salah.',
             ]);
         }
 
