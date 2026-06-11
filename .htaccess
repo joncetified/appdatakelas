@@ -13,6 +13,12 @@
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
+    # Block direct access to Laravel source, config, dependencies, and private storage.
+    RewriteRule ^(\.env|\.editorconfig|\.gitattributes|\.gitignore|\.git|composer\.(json|lock)|package(-lock)?\.json|phpunit\.xml|vite\.config\.js|README\.md|artisan|laravel)$ - [F,L,NC]
+    RewriteRule ^(app|bootstrap|config|database|node_modules|resources|routes|scripts|tests|vendor)(/|$) - [F,L,NC]
+    RewriteRule ^storage/(framework|logs)(/|$) - [F,L,NC]
+    RewriteRule (^|/)\. - [F,L]
+
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
@@ -23,3 +29,7 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+<FilesMatch "^(\.env|\.editorconfig|\.gitattributes|\.gitignore|artisan|composer\.(json|lock)|package(-lock)?\.json|phpunit\.xml|vite\.config\.js|README\.md)$">
+    Require all denied
+</FilesMatch>
