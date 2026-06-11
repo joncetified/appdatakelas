@@ -25,12 +25,12 @@
 
 @section('content')
     @if (in_array($mode, [User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN, User::ROLE_MANAGER, User::ROLE_PRINCIPAL]))
-        <section class="panel px-6 py-6 lg:px-8">
+        <section class="panel px-5 py-5 lg:px-6">
             <p class="text-xs font-semibold uppercase tracking-[0.34em] text-slate-500">Dashboard {{ $dashboardRoleLabel }}</p>
             <div class="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <h2 class="text-3xl font-semibold text-slate-950">Ringkasan infrastruktur sekolah</h2>
-                    <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+                    <h2 class="text-2xl font-semibold text-slate-950">Ringkasan Infrastruktur</h2>
+                    <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
                         Pantau jumlah kelas, pengguna, laporan, dan ringkasan income dari satu dashboard sekolah.
                         @if ($canManageMasterData)
                             Menu master data tetap bisa dibuka sesuai checklist hak akses Anda.
@@ -45,21 +45,6 @@
                         <a href="{{ route('admin.classrooms.create') }}" class="btn-primary">Tambah Kelas</a>
                     </div>
                 @endif
-            </div>
-
-            <div class="soft-grid mt-6 grid gap-4 rounded-[28px] border border-slate-200/70 bg-slate-950 px-5 py-5 text-white lg:grid-cols-3">
-                <article class="hero-stat bg-white/10 text-white shadow-none">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-white/60">Monitoring</p>
-                    <p class="mt-3 text-lg font-semibold">Semua indikator inti sekolah ada dalam satu tampilan.</p>
-                </article>
-                <article class="hero-stat bg-white/10 text-white shadow-none">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-white/60">Akses Cepat</p>
-                    <p class="mt-3 text-sm leading-6 text-white/80">Master data, laporan, dan income bisa dibuka dari panel kerja yang sama.</p>
-                </article>
-                <article class="hero-stat bg-white/10 text-white shadow-none">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-white/60">Status Sistem</p>
-                    <p class="mt-3 text-sm leading-6 text-white/80">Grafik dan statistik diringkas mengikuti role serta checklist akses yang berlaku.</p>
-                </article>
             </div>
         </section>
 

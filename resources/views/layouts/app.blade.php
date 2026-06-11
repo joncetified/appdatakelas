@@ -219,9 +219,8 @@
                 @endif
 
                 @if ($errors->any())
-                    <div class="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700 shadow-sm">
-                        <p class="font-semibold">Masih ada input yang perlu diperbaiki.</p>
-                        <ul class="mt-2 space-y-1">
+                    <div class="rounded-lg border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700 shadow-sm">
+                        <ul class="space-y-1">
                             @foreach ($errors->all() as $error)
                                 <li>{{ $error }}</li>
                             @endforeach
@@ -233,30 +232,39 @@
             </main>
         </div>
     @else
-        <main class="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-10 lg:px-8">
-            <div class="w-full space-y-6">
-                <section class="panel overflow-hidden px-6 py-6 lg:px-8">
-                    <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                        <div class="max-w-2xl">
-                            <p class="text-xs font-semibold uppercase tracking-[0.38em] text-amber-600">Portal Infrastruktur Sekolah</p>
-                            <h1 class="mt-4 min-w-0 text-4xl font-semibold leading-tight text-slate-950 break-words [overflow-wrap:anywhere]">{{ $brandName }}</h1>
-                            <p class="mt-4 max-w-xl text-base leading-7 text-slate-600">
-                                Sistem ini sudah memakai identitas sekolah Anda dan disiapkan untuk pendataan, verifikasi, monitoring, serta bantuan pengguna.
-                            </p>
+        <main class="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-6 lg:px-8">
+            <div class="grid w-full gap-5 lg:grid-cols-[0.85fr,1.15fr] lg:items-stretch">
+                <section class="panel flex flex-col justify-between overflow-hidden px-5 py-5 lg:px-6">
+                    <div>
+                        <img
+                            src="{{ asset($brandLogoPath) }}"
+                            alt="{{ $brandName }}"
+                            class="h-16 w-auto max-w-full object-contain"
+                            onerror="this.src='{{ asset('site/logo ph.png') }}'"
+                        >
+                        <p class="mt-8 text-xs font-semibold uppercase tracking-[0.28em] text-amber-600">Portal Infrastruktur Sekolah</p>
+                        <h1 class="mt-3 min-w-0 text-3xl font-semibold leading-tight text-slate-950 break-words [overflow-wrap:anywhere]">{{ $brandName }}</h1>
+                        <p class="mt-4 max-w-md text-sm leading-6 text-slate-600">
+                            Pendataan fasilitas, verifikasi wali kelas, monitoring laporan, dan bantuan pengguna dalam satu aplikasi.
+                        </p>
+                    </div>
+                    <div class="mt-8 grid gap-3 text-sm text-slate-600 sm:grid-cols-3 lg:grid-cols-1">
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p class="font-semibold text-slate-950">Data kelas</p>
+                            <p class="mt-1">Input dan riwayat laporan.</p>
                         </div>
-
-                        <div class="rounded-2xl border border-amber-100 bg-white px-5 py-5 shadow-sm shadow-amber-100/50">
-                            <img
-                                src="{{ asset($brandLogoPath) }}"
-                                alt="{{ $brandName }}"
-                                class="mx-auto max-h-[220px] w-auto max-w-full object-contain"
-                                onerror="this.src='{{ asset('site/logo ph.png') }}'"
-                            >
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p class="font-semibold text-slate-950">Verifikasi</p>
+                            <p class="mt-1">Kontrol status laporan.</p>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p class="font-semibold text-slate-950">Monitoring</p>
+                            <p class="mt-1">Ringkasan untuk admin.</p>
                         </div>
                     </div>
                 </section>
 
-                <div class="w-full">
+                <div class="w-full min-w-0">
                     @yield('content')
                 </div>
             </div>

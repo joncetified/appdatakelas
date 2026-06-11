@@ -51,9 +51,9 @@ class AppServiceProvider extends ServiceProvider
             'session.cookie' => config('session.cookie') ?: 'jonathan_session',
         ]);
 
-        $defaultBrandName = 'SPH';
+        $defaultBrandName = 'Sekolah Permata Harapan';
         $defaultBrandLogoPath = 'site/logo ph.png';
-        $placeholderBrandNames = ['laravel', 'appdatakelas'];
+        $placeholderBrandNames = ['laravel', 'appdatakelas', 'sekolah'];
 
         try {
             $hasPermissionsTable = Schema::hasTable('permissions');
@@ -90,9 +90,14 @@ class AppServiceProvider extends ServiceProvider
                 || str_contains($rawBrandName, '=')
                 || in_array(strtolower($rawBrandName), $placeholderBrandNames, true);
             $brandName = $usesDefaultBrandName ? $defaultBrandName : $rawBrandName;
-            $brandLogoPath = $defaultBrandLogoPath;
+            $rawLogoPath = trim((string) $settings->logo_path);
+            $brandLogoPath = $rawLogoPath !== '' ? $rawLogoPath : $defaultBrandLogoPath;
 
-            if (! is_file(public_path($brandLogoPath))) {
+            if (
+                str_contains($brandLogoPath, '..')
+                || str_starts_with($brandLogoPath, '/')
+                || ! is_file(public_path($brandLogoPath))
+            ) {
                 $brandLogoPath = $defaultBrandLogoPath;
             }
 

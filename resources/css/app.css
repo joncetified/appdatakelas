@@ -33,31 +33,31 @@
 
 @layer components {
     .panel {
-        @apply rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm shadow-slate-200/70 backdrop-blur transition-all duration-300;
+        @apply rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200/60 transition-all duration-200;
     }
 
     .nav-link {
-        @apply flex items-center rounded-xl px-4 py-3 text-sm font-medium text-slate-500 transition-all duration-200 hover:bg-white hover:text-slate-900 hover:shadow-sm;
+        @apply flex items-center rounded-lg px-4 py-3 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 hover:text-slate-950;
     }
 
     .nav-link-active {
-        @apply bg-slate-900 text-white shadow-lg shadow-slate-900/15 hover:bg-slate-800 hover:text-white;
+        @apply bg-slate-950 text-white shadow-sm hover:bg-slate-800 hover:text-white;
     }
 
     .btn-primary {
-        @apply inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md hover:shadow-slate-900/20 active:translate-y-0;
+        @apply inline-flex items-center justify-center rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-slate-800 active:bg-slate-900;
     }
 
     .btn-secondary {
-        @apply inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white/80 px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-md active:translate-y-0;
+        @apply inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950;
     }
 
     .icon-btn {
-        @apply inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:text-slate-950 hover:shadow-md active:translate-y-0;
+        @apply inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950;
     }
 
     .field {
-        @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5;
+        @apply w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/5;
     }
 
     .label {
@@ -65,7 +65,7 @@
     }
 
     .status-chip {
-        @apply inline-flex items-center rounded-full border border-amber-200/80 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-700;
+        @apply inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700;
     }
 
     .safe-wrap {
@@ -103,11 +103,11 @@
     }
 
     .hero-stat {
-        @apply rounded-2xl border border-slate-200/80 bg-white/85 px-5 py-5 shadow-sm shadow-slate-200/60;
+        @apply rounded-lg border border-slate-200 bg-white px-5 py-5 shadow-sm shadow-slate-200/60;
     }
 
     .metric-card {
-        @apply relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 px-6 py-6 shadow-sm shadow-slate-200/70 backdrop-blur transition-all duration-300;
+        @apply relative overflow-hidden rounded-lg border border-slate-200 bg-white px-5 py-5 shadow-sm shadow-slate-200/60 transition-all duration-200;
     }
 
     .metric-card::after {
@@ -124,7 +124,7 @@
     }
 
     .stock-badge {
-        @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
+        @apply inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold;
     }
 
     .stock-badge-critical {
@@ -202,5 +202,12 @@
 
     .ui-expanded .field {
         padding-block: 0.875rem;
+    }
+
+    .rounded-3xl,
+    .rounded-\[28px\],
+    .rounded-2xl,
+    .rounded-xl {
+        border-radius: 0.5rem;
     }
 }

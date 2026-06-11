@@ -132,11 +132,13 @@ class AuthenticatedSessionController extends Controller
             return redirect()
                 ->route('login')
                 ->withErrors([
-                    'google' => 'Login Google belum dikonfigurasi. Isi GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, dan GOOGLE_REDIRECT_URL.',
+                    'google' => 'Login Google belum dikonfigurasi. Isi GOOGLE_CLIENT_ID dan GOOGLE_CLIENT_SECRET.',
                 ]);
         }
 
         try {
+            $this->configureGoogleRedirectUrl();
+
             return Socialite::driver('google')
                 ->scopes(['openid', 'profile', 'email'])
                 ->redirect();
@@ -432,12 +434,18 @@ class AuthenticatedSessionController extends Controller
     private function googleLoginConfigured(): bool
     {
         return filled(config('services.google.client_id'))
-            && filled(config('services.google.client_secret'))
-            && filled(config('services.google.redirect'));
+            && filled(config('services.google.client_secret'));
+    }
+
+    private function configureGoogleRedirectUrl(): void
+    {
+        config(['services.google.redirect' => route('login.google.callback')]);
     }
 
     private function googleUserFromCallback(): SocialiteUser
     {
+        $this->configureGoogleRedirectUrl();
+
         $provider = Socialite::driver('google');
 
         try {

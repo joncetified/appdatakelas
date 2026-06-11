@@ -247,8 +247,8 @@ class InfrastructureWorkflowTest extends TestCase
         $response = $this->post(route('setup.admin.store'), [
             'name' => 'Super Admin Sekolah',
             'email' => 'admin@sekolah.test',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
         ]);
 
         $response->assertRedirect(route('dashboard'));
